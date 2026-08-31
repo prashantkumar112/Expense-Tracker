@@ -1,0 +1,8 @@
+{
+  "name": "Income & Expense Tracker",
+  "description": "Android-style income and expense tracking application with visual analytics, YoY quarter comparisons, custom categories, CSV upload, and automated budget reports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
