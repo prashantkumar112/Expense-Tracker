@@ -1,13 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
-  Wifi,
-  Battery,
-  Signal,
   Coins,
   Smartphone,
   Maximize2,
-  Sparkles,
-  RefreshCw,
   Plus,
 } from 'lucide-react';
 import { CurrencyConfig, SUPPORTED_CURRENCIES } from '../utils/storage';
@@ -18,7 +13,6 @@ interface AndroidHeaderProps {
   isPhoneFrame: boolean;
   onTogglePhoneFrame: () => void;
   onQuickAdd: () => void;
-  onResetSampleData: () => void;
 }
 
 export const AndroidHeader: React.FC<AndroidHeaderProps> = ({
@@ -27,45 +21,9 @@ export const AndroidHeader: React.FC<AndroidHeaderProps> = ({
   isPhoneFrame,
   onTogglePhoneFrame,
   onQuickAdd,
-  onResetSampleData,
 }) => {
-  const [currentTime, setCurrentTime] = useState('09:41');
-
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const hours = now.getHours().toString().padStart(2, '0');
-      const minutes = now.getMinutes().toString().padStart(2, '0');
-      setCurrentTime(`${hours}:${minutes}`);
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
-      {/* Android Status Bar (Material 3) */}
-      <div className="px-5 pt-2 pb-1.5 flex items-center justify-between text-xs text-slate-500 font-medium select-none border-b border-slate-100/60">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-slate-800">{currentTime}</span>
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse hidden sm:block" />
-        </div>
-
-        {/* Camera Punchhole illusion for Phone Frame */}
-        <div className="w-3.5 h-3.5 rounded-full bg-slate-900 ring-2 ring-slate-200 shadow-inner hidden md:block" />
-
-        <div className="flex items-center gap-2 text-slate-600">
-          <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-bold tracking-tight border border-slate-200">5G</span>
-          <Signal size={13} className="text-slate-500" />
-          <Wifi size={13} className="text-slate-500" />
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] font-semibold text-slate-600">98%</span>
-            <Battery size={14} className="text-emerald-600" />
-          </div>
-        </div>
-      </div>
-
       {/* Main App Top Bar */}
       <div className="px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
@@ -129,15 +87,6 @@ export const AndroidHeader: React.FC<AndroidHeaderProps> = ({
           >
             {isPhoneFrame ? <Maximize2 size={14} /> : <Smartphone size={14} />}
             <span className="text-[11px] font-medium hidden md:inline">{isPhoneFrame ? 'Full' : 'Android'}</span>
-          </button>
-
-          {/* Reset Sample Data */}
-          <button
-            onClick={onResetSampleData}
-            className="p-1.5 rounded-lg bg-white text-slate-500 hover:text-slate-800 hover:bg-slate-50 border border-slate-200 shadow-xs transition-colors cursor-pointer"
-            title="Reset / Reload Historical Sample Data"
-          >
-            <RefreshCw size={14} />
           </button>
         </div>
       </div>

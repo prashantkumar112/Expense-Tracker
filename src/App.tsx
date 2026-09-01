@@ -5,7 +5,6 @@ import {
   getStoredCategories,
   getStoredCurrency,
   getStoredTransactions,
-  resetToSampleData,
   setStoredCategories,
   setStoredCurrency,
   setStoredTransactions,
@@ -172,14 +171,6 @@ export default function App() {
     setActiveTab('transactions');
   };
 
-  // Reset to Sample Data
-  const handleResetSample = () => {
-    const { transactions: sampleTxs, categories: sampleCats } = resetToSampleData();
-    setTransactions(sampleTxs);
-    setCategories(sampleCats);
-    showToast('Multi-year historical sample data reloaded.');
-  };
-
   // Clear all
   const handleClearAll = () => {
     clearAllData();
@@ -217,7 +208,6 @@ export default function App() {
           isPhoneFrame={isPhoneFrame}
           onTogglePhoneFrame={() => setIsPhoneFrame(!isPhoneFrame)}
           onQuickAdd={() => handleOpenAddModal('expense')}
-          onResetSampleData={handleResetSample}
         />
 
         {/* Main Content Area */}
@@ -272,7 +262,6 @@ export default function App() {
               onUpdateCategory={handleUpdateCategory}
               onDeleteCategory={handleDeleteCategory}
               onImportTransactions={handleImportTransactions}
-              onResetSampleData={handleResetSample}
               onClearAllData={handleClearAll}
             />
           )}

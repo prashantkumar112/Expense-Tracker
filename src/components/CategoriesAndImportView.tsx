@@ -40,7 +40,6 @@ interface CategoriesAndImportViewProps {
   onUpdateCategory: (cat: Category) => void;
   onDeleteCategory: (id: string) => void;
   onImportTransactions: (txs: Transaction[], newCategories?: Category[]) => void;
-  onResetSampleData: () => void;
   onClearAllData: () => void;
 }
 
@@ -66,7 +65,6 @@ export const CategoriesAndImportView: React.FC<CategoriesAndImportViewProps> = (
   onUpdateCategory,
   onDeleteCategory,
   onImportTransactions,
-  onResetSampleData,
   onClearAllData,
 }) => {
   const [subTab, setSubTab] = useState<'categories' | 'import_files' | 'cloud_sync' | 'data_tools'>('categories');
@@ -1070,31 +1068,15 @@ export const CategoriesAndImportView: React.FC<CategoriesAndImportViewProps> = (
           <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3">
             <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
               <Database size={16} className="text-indigo-600" />
-              Historical Data & Reset Utilities
+              Data & Storage Utilities
             </h2>
-
-            {/* Quick reload sample data */}
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
-              <div>
-                <div className="text-xs font-semibold text-slate-800">Load Multi-Year Historical Dataset</div>
-                <div className="text-[10px] text-slate-500">
-                  Pre-loads realistic 2024, 2025, and 2026 data across all 15 categories for instant YoY comparison.
-                </div>
-              </div>
-              <button
-                onClick={onResetSampleData}
-                className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold cursor-pointer transition-colors shadow-xs"
-              >
-                Reload Sample
-              </button>
-            </div>
 
             {/* Clear All Data */}
             <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-between">
               <div>
                 <div className="text-xs font-semibold text-rose-700">Clear All Transactions</div>
                 <div className="text-[10px] text-slate-500">
-                  Wipes stored history from local storage.
+                  Wipes stored transaction records from local storage.
                 </div>
               </div>
               <button
