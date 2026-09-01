@@ -38,6 +38,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [description, setDescription] = useState<string>('');
   const [date, setDate] = useState<string>(new Date().toISOString().substring(0, 10));
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('UPI');
+  const [excludeFromCashflow, setExcludeFromCashflow] = useState<boolean>(false);
   const [notes, setNotes] = useState<string>('');
   const [isRecurring, setIsRecurring] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -51,6 +52,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       setDescription(editingTransaction.description || '');
       setDate(editingTransaction.date);
       setPaymentMethod(editingTransaction.paymentMethod || 'UPI');
+      setExcludeFromCashflow(
+        editingTransaction.excludeFromCashflow !== undefined
+          ? !!editingTransaction.excludeFromCashflow
+          : editingTransaction.paymentMethod === 'Credit Card'
+      );
       setNotes(editingTransaction.notes || '');
       setIsRecurring(!!editingTransaction.isRecurring);
     } else {
@@ -59,6 +65,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       setDescription('');
       setDate(new Date().toISOString().substring(0, 10));
       setPaymentMethod('UPI');
+      setExcludeFromCashflow(false);
       setNotes('');
       setIsRecurring(false);
       // Select first category matching type
@@ -67,6 +74,16 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     }
     setError('');
   }, [isOpen, editingTransaction, initialType, categories]);
+
+  // When payment method changes to Credit Card, suggest excluding from immediate cashflow
+  const handlePaymentMethodChange = (method: PaymentMethod) => {
+    setPaymentMethod(method);
+    if (method === 'Credit Card' && type === 'expense') {
+      setExcludeFromCashflow(true);
+    } else if (method !== 'Credit Card') {
+      setExcludeFromCashflow(false);
+    }
+  };
 
   // When type changes, ensure valid category
   const handleTypeChange = (newType: TransactionType) => {
@@ -102,6 +119,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       description: description.trim() || selectedCat.name,
       date,
       paymentMethod,
+      excludeFromCashflow: type === 'expense' && paymentMethod === 'Credit Card' ? excludeFromCashflow : false,
       notes: notes.trim(),
       isRecurring,
     });
@@ -242,7 +260,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                 <select
                   value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                  onChange={(e) => handlePaymentMethodChange(e.target.value as PaymentMethod)}
                   className="w-full bg-slate-50 text-slate-800 text-xs pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none cursor-pointer"
                 >
                   <option value="UPI">UPI (GPay / PhonePe / Paytm)</option>
@@ -256,6 +274,25 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Credit Card Cashflow Mode Toggle */}
+          {type === 'expense' && paymentMethod === 'Credit Card' && (
+            <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 flex items-start gap-2.5">
+              <input
+                id="excludeFromCashflow"
+                type="checkbox"
+                checked={excludeFromCashflow}
+                onChange={(e) => setExcludeFromCashflow(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-white border-amber-300 cursor-pointer"
+              />
+              <label htmlFor="excludeFromCashflow" className="text-xs cursor-pointer">
+                <span className="font-bold text-amber-900 block">Defer Cashflow until Bill Payment</span>
+                <span className="text-[11px] text-amber-700 block mt-0.5 leading-relaxed">
+                  Track in category budget & analytics now, but don&apos;t deduct from bank cashflow until the credit card bill is settled next month.
+                </span>
+              </label>
+            </div>
+          )}
 
           {/* Description */}
           <div>

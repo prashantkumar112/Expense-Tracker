@@ -25,6 +25,8 @@ export interface Transaction {
   notes?: string;
   isRecurring?: boolean;
   tags?: string[];
+  excludeFromCashflow?: boolean; // If true (e.g. unpaid credit card expense), does not deduct immediate cashflow
+  isCreditCardSettlement?: boolean; // If true (e.g. credit card bill payment from bank), impacts cashflow without double-counting expense categories
   createdAt: number;
 }
 

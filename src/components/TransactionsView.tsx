@@ -363,9 +363,23 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                       <span>•</span>
                       <span>{tx.date}</span>
                       <span>•</span>
-                      <span className="bg-slate-100 px-1.5 py-0.2 rounded text-slate-600 font-medium">
+                      <span className={`px-1.5 py-0.2 rounded font-medium ${
+                        tx.paymentMethod === 'Credit Card'
+                          ? 'bg-amber-100 text-amber-800 border border-amber-200 font-semibold'
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
                         {tx.paymentMethod}
                       </span>
+                      {tx.excludeFromCashflow && (
+                        <span className="bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.2 rounded font-semibold text-[9px]">
+                          Unbilled CC
+                        </span>
+                      )}
+                      {tx.isCreditCardSettlement && (
+                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.2 rounded font-semibold text-[9px]">
+                          CC Bill Paid
+                        </span>
+                      )}
                       {tx.isRecurring && (
                         <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.2 rounded font-semibold text-[9px]">
                           Recurring

@@ -13,6 +13,8 @@ import {
   Sparkles,
   PieChart as PieIcon,
   ShieldAlert,
+  CreditCard,
+  Coins,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -49,6 +51,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const currentMonth = new Date().getMonth() + 1;
 
   const [selectedPeriod, setSelectedPeriod] = useState<'thisMonth' | 'last3Months' | 'thisYear' | 'all'>('thisMonth');
+  const [cashflowMode, setCashflowMode] = useState<'cashflow' | 'accrual'>('cashflow');
 
   // Filter transactions based on selected period
   const filteredTxs = useMemo(() => {
@@ -74,23 +77,67 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     });
   }, [transactions, selectedPeriod]);
 
-  // Aggregate stats
+  // Aggregate stats: Accrual vs Cashflow separation
   const stats = useMemo(() => {
     let income = 0;
     let expense = 0;
+    let deferredCcExpense = 0;
 
     filteredTxs.forEach((t) => {
-      if (t.type === 'income') income += t.amount;
-      else expense += t.amount;
+      if (t.type === 'income') {
+        income += t.amount;
+      } else {
+        const isDeferredCC = t.paymentMethod === 'Credit Card' && t.excludeFromCashflow;
+        if (isDeferredCC) {
+          deferredCcExpense += t.amount;
+        }
+
+        if (cashflowMode === 'cashflow') {
+          // Cashflow view: only count immediate outflows & settlements
+          if (!isDeferredCC) {
+            expense += t.amount;
+          }
+        } else {
+          // Accrual view: count all expenses incurred across categories
+          if (!t.isCreditCardSettlement) {
+            expense += t.amount;
+          }
+        }
+      }
     });
 
     const net = income - expense;
     const savingsRate = income > 0 ? (net / income) * 100 : 0;
 
-    return { income, expense, net, savingsRate };
-  }, [filteredTxs]);
+    return { income, expense, net, savingsRate, deferredCcExpense };
+  }, [filteredTxs, cashflowMode]);
 
-  // Monthly Budget Target calculation
+  // Credit Card Liability & Unbilled Summary
+  const creditCardLiability = useMemo(() => {
+    const now = new Date();
+    const curY = now.getFullYear();
+    const curM = now.getMonth() + 1;
+
+    let thisMonthCcExpense = 0;
+    let thisMonthCcCount = 0;
+
+    transactions.forEach((t) => {
+      if (t.type === 'expense' && t.paymentMethod === 'Credit Card') {
+        const { year: ty, month: tm } = parseTxDateComponents(t.date);
+        if (ty === curY && tm === curM) {
+          thisMonthCcExpense += t.amount;
+          thisMonthCcCount += 1;
+        }
+      }
+    });
+
+    return {
+      thisMonthCcExpense,
+      thisMonthCcCount,
+    };
+  }, [transactions]);
+
+  // Monthly Budget Target calculation (always accrual to track real budget)
   const budgetSummary = useMemo(() => {
     const totalMonthlyBudget = categories
       .filter((c) => c.type === 'expense')
@@ -99,7 +146,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     // Current month actual expense
     const currentMonthTxs = transactions.filter((t) => {
       const d = new Date(t.date);
-      return d.getFullYear() === currentYear && d.getMonth() + 1 === currentMonth && t.type === 'expense';
+      return (
+        d.getFullYear() === currentYear &&
+        d.getMonth() + 1 === currentMonth &&
+        t.type === 'expense' &&
+        !t.isCreditCardSettlement
+      );
     });
     const currentMonthExpense = currentMonthTxs.reduce((sum, t) => sum + t.amount, 0);
 
@@ -133,9 +185,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="space-y-4 pb-20">
-      {/* Time Horizon Selector */}
-      <div className="flex items-center justify-between gap-2 overflow-x-auto py-1 scrollbar-none">
-        <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-xs text-xs font-semibold text-slate-500">
+      {/* Time Horizon & Dual Cashflow Mode Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-xs text-xs font-semibold text-slate-500 overflow-x-auto scrollbar-none">
           {[
             { id: 'thisMonth', label: 'This Month' },
             { id: 'last3Months', label: '3 Months' },
@@ -156,21 +208,72 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           ))}
         </div>
 
-        <button
-          onClick={() => onNavigateTab('reports')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs font-medium cursor-pointer transition-colors shadow-xs whitespace-nowrap"
-        >
-          <Sparkles size={13} className="text-indigo-600" />
-          <span>Monthly Report</span>
-        </button>
+        {/* Dual Mode Switch: Cashflow vs Accrual */}
+        <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-slate-200 shadow-xs text-xs font-semibold">
+          <button
+            onClick={() => setCashflowMode('cashflow')}
+            className={`px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+              cashflowMode === 'cashflow'
+                ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+            title="Real Bank Liquidity: Credit card expenses don't deduct cash until paid"
+          >
+            <Coins size={13} />
+            <span>Bank Cashflow</span>
+          </button>
+          <button
+            onClick={() => setCashflowMode('accrual')}
+            className={`px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+              cashflowMode === 'accrual'
+                ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+            title="Total Incurred Expense: Includes card swipes immediately"
+          >
+            <Layers size={13} />
+            <span>Total Incurred</span>
+          </button>
+        </div>
       </div>
+
+      {/* Credit Card Unbilled Liability Card */}
+      {creditCardLiability.thisMonthCcExpense > 0 && (
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-50 to-orange-50/70 border border-amber-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-amber-100 text-amber-800 shrink-0">
+              <CreditCard size={18} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-900">Credit Card Spending</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold border border-amber-300">
+                  {creditCardLiability.thisMonthCcCount} Swipes
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                <strong className="text-amber-900 font-bold">{formatCurrency(creditCardLiability.thisMonthCcExpense, currency)}</strong> spent on card this month. Cashflow is protected until bill date.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigateTab('transactions')}
+            className="px-3 py-1.5 rounded-xl bg-white hover:bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold transition-colors cursor-pointer shadow-xs whitespace-nowrap self-start sm:self-auto"
+          >
+            View Card Swipes
+          </button>
+        </div>
+      )}
 
       {/* Hero Financial KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* Net Balance */}
         <div className="col-span-2 sm:col-span-1 p-4 rounded-2xl bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white border border-slate-800/80 shadow-md shadow-indigo-950/20 relative overflow-hidden">
           <div className="flex items-center justify-between text-xs text-indigo-200 mb-1">
-            <span className="font-medium">Net Cashflow</span>
+            <span className="font-medium">
+              {cashflowMode === 'cashflow' ? 'Net Cashflow' : 'Net Savings'}
+            </span>
             <Wallet size={16} className="text-indigo-300" />
           </div>
           <div className={`text-xl sm:text-2xl font-bold tracking-tight ${stats.net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -196,10 +299,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="text-[10px] text-slate-400 mt-1">Earnings & Returns</div>
         </div>
 
-        {/* Total Expenses */}
+        {/* Total Expenses / Cash Outflow */}
         <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-            <span className="font-medium">Total Spent</span>
+            <span className="font-medium">
+              {cashflowMode === 'cashflow' ? 'Cash Outflow' : 'Total Spent'}
+            </span>
             <div className="p-1 rounded-md bg-rose-50 text-rose-600">
               <ArrowDownRight size={14} />
             </div>
@@ -207,13 +312,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="text-lg font-bold text-rose-600 tracking-tight">
             {formatCurrency(stats.expense, currency)}
           </div>
-          <div className="text-[10px] text-slate-400 mt-1">Total outflows</div>
+          <div className="text-[10px] text-slate-400 mt-1">
+            {cashflowMode === 'cashflow' ? 'Actual bank deductions' : 'All categories combined'}
+          </div>
         </div>
 
         {/* Savings Metric */}
         <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-            <span className="font-medium">Net Saved</span>
+            <span className="font-medium">Bank Balance Impact</span>
             <div className="p-1 rounded-md bg-indigo-50 text-indigo-600">
               <PiggyBank size={14} />
             </div>
@@ -221,7 +328,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="text-lg font-bold text-indigo-600 tracking-tight">
             {formatCurrency(Math.max(0, stats.net), currency)}
           </div>
-          <div className="text-[10px] text-slate-400 mt-1">Retained capital</div>
+          <div className="text-[10px] text-slate-400 mt-1">Retained liquidity</div>
         </div>
       </div>
 

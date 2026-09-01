@@ -96,6 +96,8 @@ export default function App() {
         categoryName: txData.categoryName || 'Personal',
         description: txData.description || txData.categoryName || 'Expense',
         paymentMethod: txData.paymentMethod || 'UPI',
+        excludeFromCashflow: txData.excludeFromCashflow,
+        isCreditCardSettlement: txData.isCreditCardSettlement,
         notes: txData.notes,
         isRecurring: txData.isRecurring,
         createdAt: Date.now(),
