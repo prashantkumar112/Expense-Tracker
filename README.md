@@ -30,6 +30,17 @@ cd /d C:\Projects\ExpenseTracker
 
 ---
 
+## ⚡ Quick One-Click Setup (PowerShell Script)
+If you are on Windows, you can run all of Steps 3 through 6 with a single command!
+
+Open PowerShell in the project directory and run:
+```powershell
+.\setup-android.ps1
+```
+*(If PowerShell asks about execution policy, run: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` and rerun the script).*
+
+---
+
 ### Step 3: Install Dependencies
 Run the following commands to install project packages and the Capacitor Android engine:
 
