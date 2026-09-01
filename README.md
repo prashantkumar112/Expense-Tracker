@@ -119,6 +119,12 @@ Then re-run **Build ➔ Build APK(s)** in Android Studio.
 
 ---
 
+## 📊 Google Sheets Sync & Data Backup on Android
+- **1-Click Multi-Tab Google Sheets Export (`.xlsx`)**: In the **Settings ➔ Google Sheets Sync** tab, tap **"Download Workbook (.xlsx)"** to export all 3 sheets (*All Transactions*, *Monthly Summary*, and *Yearly YoY Comparison*). You can open or upload this directly to Google Drive / Google Sheets on your phone without needing any Google sign-in configuration!
+- **Live Google Cloud Sync**: For live automatic API syncing directly to your Google account, you can configure your own Google Cloud OAuth 2.0 Web Client ID in the **Advanced Settings** toggle.
+
+---
+
 ## 💡 Troubleshooting Tips for Windows Users
 - **Gradle sync grayed out**: In Android Studio, go to **File** ➔ **Sync Project with Gradle Files** or click the Elephant icon on the top right.
 - **Spaces in folder path**: Keep your project in a directory without spaces (e.g. `C:\ExpenseTracker` instead of `C:\Users\John Doe\My Projects`).

@@ -11,6 +11,11 @@ import {
   Zap,
   Calendar,
   LogOut,
+  Download,
+  Key,
+  ChevronDown,
+  ChevronUp,
+  Smartphone,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Transaction, Category } from '../types';
@@ -22,6 +27,7 @@ import {
   syncExpensesToGoogleSheets,
   clearGoogleAuth,
   getStoredAccessToken,
+  generateGoogleSheetsWorkbook,
 } from '../utils/googleSheetsSync';
 
 interface GoogleSheetsSyncPanelProps {
@@ -40,10 +46,14 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
   const [syncSuccessMessage, setSyncSuccessMessage] = useState<string | null>(null);
   const [syncErrorMessage, setSyncErrorMessage] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(!!getStoredAccessToken());
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
+  const [customClientId, setCustomClientId] = useState<string>(config.clientId || '');
 
   useEffect(() => {
-    setConfig(getStoredGSheetsConfig());
+    const current = getStoredGSheetsConfig();
+    setConfig(current);
     setIsConnected(!!getStoredAccessToken());
+    setCustomClientId(current.clientId || '');
   }, []);
 
   const handleToggleAutoSync = (enabled: boolean) => {
@@ -56,6 +66,25 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
     const updated = { ...config, syncDayOfMonth: day };
     setConfig(updated);
     saveGSheetsConfig(updated);
+  };
+
+  const handleSaveClientId = () => {
+    const updated = { ...config, clientId: customClientId.trim() || undefined };
+    setConfig(updated);
+    saveGSheetsConfig(updated);
+    setSyncSuccessMessage('Google OAuth Client ID updated!');
+  };
+
+  const handleDownloadWorkbook = () => {
+    try {
+      generateGoogleSheetsWorkbook(transactions, categories, currency);
+      setSyncSuccessMessage('Multi-tab Google Sheets & Excel workbook generated and downloaded!');
+      try {
+        confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
+      } catch {}
+    } catch (e: any) {
+      setSyncErrorMessage(e?.message || 'Failed to generate workbook.');
+    }
   };
 
   const handleTriggerSync = async () => {
@@ -75,7 +104,9 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
         confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } });
       } catch {}
     } catch (err: any) {
-      setSyncErrorMessage(err?.message || 'Failed to sync with Google Sheets. Please ensure popup is allowed.');
+      setSyncErrorMessage(
+        err?.message || 'Failed to sync with Google Sheets. Please ensure popup is allowed or use direct download.'
+      );
     } finally {
       setIsSyncing(false);
     }
@@ -102,26 +133,35 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-              <span>Google Sheets & Drive Monthly Sync</span>
+              <span>Google Sheets & Drive Sync</span>
               <span className="text-[10px] px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-800 font-bold">
                 Cloud Sync
               </span>
             </h3>
             <p className="text-[11px] text-slate-500">
-              Auto-syncs transactions table and aggregated monthly savings reports to your live Google Sheet.
+              Sync transactions, monthly summary, and YoY analysis to Google Sheets.
             </p>
           </div>
         </div>
 
-        {/* Sync Button */}
-        <div className="flex items-center gap-2">
+        {/* Action Buttons: Live Cloud Sync & Direct 1-Click Download */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <button
+            onClick={handleDownloadWorkbook}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold shadow-2xs cursor-pointer transition-all active:scale-95 whitespace-nowrap"
+            title="Download full multi-tab file (All Transactions, Monthly Summary, Yearly Comparison)"
+          >
+            <Download size={14} />
+            <span>Download Workbook (.xlsx)</span>
+          </button>
+
           <button
             onClick={handleTriggerSync}
             disabled={isSyncing}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold shadow-xs cursor-pointer transition-all active:scale-95"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold shadow-xs cursor-pointer transition-all active:scale-95 whitespace-nowrap"
           >
             <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
-            <span>{isSyncing ? 'Syncing...' : 'Sync Now to Google Sheets'}</span>
+            <span>{isSyncing ? 'Connecting...' : 'Live Google Sync'}</span>
           </button>
         </div>
       </div>
@@ -177,11 +217,30 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
         </div>
       )}
 
-      {/* Error Notification */}
+      {/* Error Notification with Help Tips */}
       {syncErrorMessage && (
-        <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-          <AlertCircle size={15} className="text-rose-600 shrink-0" />
-          <span>{syncErrorMessage}</span>
+        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs space-y-2">
+          <div className="flex items-start gap-2">
+            <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-semibold">{syncErrorMessage}</p>
+              <p className="text-[11px] text-rose-700">
+                <strong>Why this happens:</strong> Google blocks OAuth popups in embedded Android WebViews or when third-party cookies/scripts are restricted.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-2.5 rounded-lg bg-white/80 border border-rose-200/80 flex items-center justify-between gap-2">
+            <span className="text-[11px] text-slate-700">
+              💡 You can use <strong>"Download Workbook (.xlsx)"</strong> to export all 3 sheets and open or upload them directly to Google Drive / Sheets anytime without needing sign-in!
+            </span>
+            <button
+              onClick={handleDownloadWorkbook}
+              className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] shrink-0"
+            >
+              Download .xlsx
+            </button>
+          </div>
         </div>
       )}
 
@@ -244,9 +303,44 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
           <li><strong>Sheet 1 ("All Transactions"):</strong> Complete itemized list with Description, Amount, Created on (DD/MM/YY), Category, Payment Method, and Type.</li>
           <li><strong>Sheet 2 ("Monthly Summary"):</strong> Monthly breakdown with Total Inflow, Total Outflow, Net Savings, and Savings Rate (%).</li>
           <li><strong>Sheet 3 ("Yearly Comparison"):</strong> Year-over-Year (YoY) analysis comparing Current vs Previous Year at Category Level, Total Level, and Month-by-Month trend table.</li>
-          <li><strong>Google Drive access:</strong> Only files created by this tracker are accessed (secure <code>drive.file</code> scope).</li>
         </ul>
+      </div>
+
+      {/* Advanced OAuth Settings Toggle */}
+      <div className="border-t border-slate-100 pt-2">
+        <button
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="text-[11px] text-slate-500 hover:text-slate-800 font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+        >
+          <Key size={12} />
+          <span>Custom Google OAuth Client ID (Optional)</span>
+          {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        </button>
+
+        {showAdvanced && (
+          <div className="mt-2 p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+            <p className="text-[11px] text-slate-500">
+              If you have created your own Google Cloud Console OAuth 2.0 Web Client ID, you can paste it below to authenticate directly against your Google Cloud project.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={customClientId}
+                onChange={(e) => setCustomClientId(e.target.value)}
+                placeholder="e.g. 123456789-xxxx.apps.googleusercontent.com"
+                className="flex-1 bg-white p-2 rounded-lg border border-slate-200 text-xs font-mono focus:outline-none focus:border-indigo-500"
+              />
+              <button
+                onClick={handleSaveClientId}
+                className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs cursor-pointer shadow-xs"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
+

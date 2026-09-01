@@ -1,9 +1,11 @@
+import * as XLSX from 'xlsx';
 import { Transaction, Category } from '../types';
 import { CurrencyConfig, formatCurrency } from './storage';
 
 export interface GoogleSheetsSyncConfig {
   spreadsheetId?: string;
   spreadsheetUrl?: string;
+  clientId?: string;
   autoSyncMonthly: boolean;
   syncDayOfMonth: number;
   lastSyncTimestamp?: number;
@@ -63,21 +65,67 @@ declare global {
 }
 
 /**
+ * Dynamically loads and verifies Google Identity Services script
+ */
+export async function ensureGoogleIdentityScriptLoaded(): Promise<void> {
+  if (window.google?.accounts?.oauth2) {
+    return;
+  }
+
+  return new Promise((resolve, reject) => {
+    let script = document.getElementById('google-gsi-client') as HTMLScriptElement | null;
+    
+    if (!script) {
+      script = document.createElement('script');
+      script.id = 'google-gsi-client';
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+
+    let elapsed = 0;
+    const interval = 100;
+    const timeout = 6000;
+
+    const checker = setInterval(() => {
+      elapsed += interval;
+      if (window.google?.accounts?.oauth2) {
+        clearInterval(checker);
+        resolve();
+      } else if (elapsed >= timeout) {
+        clearInterval(checker);
+        reject(
+          new Error(
+            'Google Identity Services script could not be initialized. If you are on an Android APK or have an ad-blocker enabled, Google OAuth popups may be restricted. You can use the "Export Google Sheets Workbook" button below for 100% offline & instant backup.'
+          )
+        );
+      }
+    }, interval);
+  });
+}
+
+/**
  * Request OAuth token using Google Identity Services Token Client
  */
 export async function requestGoogleAccessToken(): Promise<string> {
   const existing = getStoredAccessToken();
   if (existing) return existing;
 
+  await ensureGoogleIdentityScriptLoaded();
+
+  const config = getStoredGSheetsConfig();
+  const clientId = config.clientId || '1051286839972-client-app.apps.googleusercontent.com';
+
   return new Promise((resolve, reject) => {
-    if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
-      reject(new Error('Google Identity Services script not loaded. Please check your internet connection.'));
+    if (!window.google?.accounts?.oauth2) {
+      reject(new Error('Google Identity Services script not loaded.'));
       return;
     }
 
     try {
       const tokenClient = window.google.accounts.oauth2.initTokenClient({
-        client_id: '1051286839972-client-app.apps.googleusercontent.com', // Dynamically inferred or standard GIS popup
+        client_id: clientId,
         scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email',
         callback: (resp: any) => {
           if (resp.error) {
@@ -115,6 +163,124 @@ export async function fetchGoogleUserEmail(token: string): Promise<string | null
     }
   } catch {}
   return null;
+}
+
+/**
+ * Generates an offline Multi-Tab Excel Workbook ready for Google Sheets import
+ */
+export function generateGoogleSheetsWorkbook(
+  transactions: Transaction[],
+  categories: Category[],
+  currency: CurrencyConfig
+): void {
+  const sortedTxs = [...transactions].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
+  // 1. Sheet 1: All Transactions
+  const txData = sortedTxs.map((t) => {
+    const parts = t.date.split('-');
+    const ddmmyy = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0].slice(-2)}` : t.date;
+    return {
+      'Description': t.description || '',
+      [`Amount (${currency.symbol})`]: t.amount,
+      'Created on': ddmmyy,
+      'Category': t.categoryName || 'General',
+      'Type': t.type.toUpperCase(),
+      'Payment Method': t.paymentMethod || 'UPI',
+      'Notes': t.notes || '',
+      'Date (ISO)': t.date,
+    };
+  });
+
+  // 2. Sheet 2: Monthly Summary
+  const monthlyMap: Record<string, { income: number; expense: number; count: number }> = {};
+  sortedTxs.forEach((t) => {
+    const m = t.date.substring(0, 7); // YYYY-MM
+    if (!monthlyMap[m]) {
+      monthlyMap[m] = { income: 0, expense: 0, count: 0 };
+    }
+    if (t.type === 'expense') {
+      monthlyMap[m].expense += t.amount;
+    } else {
+      monthlyMap[m].income += t.amount;
+    }
+    monthlyMap[m].count += 1;
+  });
+
+  const summaryData = Object.keys(monthlyMap)
+    .sort((a, b) => b.localeCompare(a))
+    .map((m) => {
+      const d = monthlyMap[m];
+      const net = d.income - d.expense;
+      const rate = d.income > 0 ? ((net / d.income) * 100).toFixed(1) + '%' : '0%';
+      return {
+        'Month (YYYY-MM)': m,
+        [`Total Inflow (${currency.symbol})`]: d.income,
+        [`Total Outflow (${currency.symbol})`]: d.expense,
+        [`Net Savings (${currency.symbol})`]: net,
+        'Savings Rate': rate,
+        'Transaction Count': d.count,
+      };
+    });
+
+  // 3. Sheet 3: Yearly Comparison
+  const yearsInTxs = Array.from(
+    new Set(sortedTxs.map((t) => parseInt(t.date.substring(0, 4), 10)))
+  )
+    .filter((y) => !isNaN(y))
+    .sort((a, b) => b - a);
+
+  const currentYear = yearsInTxs[0] || new Date().getFullYear();
+  const prevYear = currentYear - 1;
+
+  const currYearTxs = sortedTxs.filter((t) => t.date.startsWith(`${currentYear}-`));
+  const prevYearTxs = sortedTxs.filter((t) => t.date.startsWith(`${prevYear}-`));
+
+  const currIncome = currYearTxs.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const prevIncome = prevYearTxs.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const currExpense = currYearTxs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const prevExpense = prevYearTxs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const currNet = currIncome - currExpense;
+  const prevNet = prevIncome - prevExpense;
+
+  const yoyTotals = [
+    {
+      'Metric': 'Total Income (Inflow)',
+      [`${prevYear} Total`]: prevIncome,
+      [`${currentYear} Total`]: currIncome,
+      [`YoY Diff (${currency.symbol})`]: currIncome - prevIncome,
+      'YoY Growth (%)': prevIncome > 0 ? (((currIncome - prevIncome) / prevIncome) * 100).toFixed(1) + '%' : '0%',
+    },
+    {
+      'Metric': 'Total Expenses (Outflow)',
+      [`${prevYear} Total`]: prevExpense,
+      [`${currentYear} Total`]: currExpense,
+      [`YoY Diff (${currency.symbol})`]: currExpense - prevExpense,
+      'YoY Growth (%)': prevExpense > 0 ? (((currExpense - prevExpense) / prevExpense) * 100).toFixed(1) + '%' : '0%',
+    },
+    {
+      'Metric': 'Net Savings (Surplus)',
+      [`${prevYear} Total`]: prevNet,
+      [`${currentYear} Total`]: currNet,
+      [`YoY Diff (${currency.symbol})`]: currNet - prevNet,
+      'YoY Growth (%)': prevNet !== 0 ? (((currNet - prevNet) / Math.abs(prevNet)) * 100).toFixed(1) + '%' : '0%',
+    },
+  ];
+
+  // Create workbook
+  const wb = XLSX.utils.book_new();
+
+  const wsTx = XLSX.utils.json_to_sheet(txData);
+  const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+  const wsYoY = XLSX.utils.json_to_sheet(yoyTotals);
+
+  XLSX.utils.book_append_sheet(wb, wsTx, 'All Transactions');
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'Monthly Summary');
+  XLSX.utils.book_append_sheet(wb, wsYoY, 'Yearly Comparison');
+
+  const today = new Date().toISOString().substring(0, 10);
+  XLSX.writeFile(wb, `Expense_Tracker_GoogleSheets_Sync_${today}.xlsx`);
 }
 
 /**
