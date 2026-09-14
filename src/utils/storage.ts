@@ -4,7 +4,7 @@ import { generateSampleTransactions } from '../data/sampleTransactions';
 
 const STORAGE_KEYS = {
   TRANSACTIONS: 'tracker_transactions_v1',
-  CATEGORIES: 'tracker_categories_v1',
+  CATEGORIES: 'tracker_categories_v2',
   CURRENCY: 'tracker_currency_v1',
   INITIALIZED: 'tracker_initialized_v1',
 };
@@ -62,25 +62,29 @@ export function formatCurrency(amount: number, curr?: CurrencyConfig): string {
 
 export function getStoredCategories(): Category[] {
   try {
+    // Clear legacy v1 categories cache if present
+    if (typeof window !== 'undefined' && window.localStorage) {
+      if (localStorage.getItem('tracker_categories_v1')) {
+        localStorage.removeItem('tracker_categories_v1');
+      }
+    }
+
     const raw = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Ensure core default categories like "Others" exist even if loaded from older localStorage
-        const existingIds = new Set(parsed.map((c: Category) => c.id));
-        const missingDefaults = DEFAULT_CATEGORIES.filter((c) => !existingIds.has(c.id));
-        if (missingDefaults.length > 0) {
-          const merged = [...parsed, ...missingDefaults];
-          setStoredCategories(merged);
-          return merged;
-        }
         return parsed;
       }
     }
   } catch (e) {
     console.error('Failed to load categories', e);
   }
-  // Initialize with default
+  // Initialize with the 60 categories
+  setStoredCategories(DEFAULT_CATEGORIES);
+  return DEFAULT_CATEGORIES;
+}
+
+export function resetToDefaultCategories(): Category[] {
   setStoredCategories(DEFAULT_CATEGORIES);
   return DEFAULT_CATEGORIES;
 }

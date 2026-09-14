@@ -41,6 +41,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [excludeFromCashflow, setExcludeFromCashflow] = useState<boolean>(false);
   const [notes, setNotes] = useState<string>('');
   const [isRecurring, setIsRecurring] = useState<boolean>(false);
+  const [categorySearch, setCategorySearch] = useState<string>('');
   const [error, setError] = useState<string>('');
 
   // Populate when editing or switching
@@ -68,10 +69,15 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       setExcludeFromCashflow(false);
       setNotes('');
       setIsRecurring(false);
-      // Select first category matching type
-      const firstCat = categories.find((c) => c.type === initialType);
-      if (firstCat) setCategoryId(firstCat.id);
+      // Select first category matching type or first category
+      const matched = categories.filter((c) => c.type === initialType);
+      if (matched.length > 0) {
+        setCategoryId(matched[0].id);
+      } else if (categories.length > 0) {
+        setCategoryId(categories[0].id);
+      }
     }
+    setCategorySearch('');
     setError('');
   }, [isOpen, editingTransaction, initialType, categories]);
 
@@ -91,10 +97,16 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     const matched = categories.filter((c) => c.type === newType);
     if (matched.length > 0 && !matched.some((c) => c.id === categoryId)) {
       setCategoryId(matched[0].id);
+    } else if (categories.length > 0 && !categories.some((c) => c.id === categoryId)) {
+      setCategoryId(categories[0].id);
     }
   };
 
-  const filteredCategories = categories.filter((c) => c.type === type);
+  const hasTypedCategories = categories.some((c) => c.type === type);
+  const baseCategories = hasTypedCategories ? categories.filter((c) => c.type === type) : categories;
+  const filteredCategories = categorySearch.trim()
+    ? baseCategories.filter((c) => c.name.toLowerCase().includes(categorySearch.toLowerCase().trim()))
+    : baseCategories;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -207,10 +219,32 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
           {/* Category Chips Grid */}
           <div>
-            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-              Select Category ({filteredCategories.length})
-            </label>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-44 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                Select Category ({filteredCategories.length})
+              </label>
+              {baseCategories.length > 8 && (
+                <div className="relative w-36">
+                  <input
+                    type="text"
+                    value={categorySearch}
+                    onChange={(e) => setCategorySearch(e.target.value)}
+                    placeholder="Search category..."
+                    className="w-full bg-slate-50 text-[11px] pl-2 pr-5 py-1 rounded-lg border border-slate-200 focus:outline-none focus:border-indigo-500"
+                  />
+                  {categorySearch && (
+                    <button
+                      type="button"
+                      onClick={() => setCategorySearch('')}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-48 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50">
               {filteredCategories.map((cat) => {
                 const isSelected = categoryId === cat.id;
                 return (
@@ -218,19 +252,24 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     key={cat.id}
                     type="button"
                     onClick={() => setCategoryId(cat.id)}
-                    className={`p-2 rounded-xl border text-left transition-all flex flex-col items-center justify-center gap-1 cursor-pointer text-center ${
+                    className={`p-2 rounded-xl border text-left transition-all flex items-center gap-2 cursor-pointer ${
                       isSelected
                         ? 'bg-white border-indigo-600 ring-1 ring-indigo-500 shadow-xs'
-                        : 'bg-white/60 border-slate-200 hover:border-slate-300'
+                        : 'bg-white/70 border-slate-200 hover:border-slate-300'
                     }`}
                   >
-                    <CategoryIcon iconName={cat.icon} color={cat.color} size={16} />
-                    <span className="text-[10px] font-semibold text-slate-700 truncate w-full">
+                    <CategoryIcon iconName={cat.icon} color={cat.color} size={15} />
+                    <span className="text-[11px] font-semibold text-slate-700 truncate flex-1">
                       {cat.name}
                     </span>
                   </button>
                 );
               })}
+              {filteredCategories.length === 0 && (
+                <div className="col-span-full py-4 text-center text-xs text-slate-400">
+                  No category matches &quot;{categorySearch}&quot;
+                </div>
+              )}
             </div>
           </div>
 

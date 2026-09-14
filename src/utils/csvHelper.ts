@@ -382,7 +382,7 @@ export function autoDetectColumnMapping(headers: string[]): CsvMappingConfig {
     typeCol,
     paymentMethodCol,
     defaultType: 'expense',
-    defaultCategory: 'cat-others',
+    defaultCategory: 'cat-personal',
     dateFormat: 'DD/MM/YY',
   };
 }

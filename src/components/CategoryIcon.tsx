@@ -28,6 +28,17 @@ import {
   Book,
   Smartphone,
   Sparkles,
+  Heart,
+  Cake,
+  PartyPopper,
+  Gem,
+  Dumbbell,
+  Fuel,
+  Baby,
+  ShieldAlert,
+  AlertCircle,
+  Wrench,
+  Flame,
 } from 'lucide-react';
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -59,6 +70,17 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Book,
   Smartphone,
   Sparkles,
+  Heart,
+  Cake,
+  PartyPopper,
+  Gem,
+  Dumbbell,
+  Fuel,
+  Baby,
+  ShieldAlert,
+  AlertCircle,
+  Wrench,
+  Flame,
 };
 
 interface CategoryIconProps {

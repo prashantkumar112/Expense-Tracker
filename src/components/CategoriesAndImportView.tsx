@@ -18,9 +18,10 @@ import {
   ArrowRight,
   Info,
   X,
+  Search,
 } from 'lucide-react';
 import { Category, CsvMappingConfig, Transaction, TransactionType, UploadedExpenseFile } from '../types';
-import { CurrencyConfig, formatCurrency } from '../utils/storage';
+import { CurrencyConfig, formatCurrency, resetToDefaultCategories } from '../utils/storage';
 import { CategoryIcon } from './CategoryIcon';
 import {
   autoDetectColumnMapping,
@@ -82,6 +83,8 @@ export const CategoriesAndImportView: React.FC<CategoriesAndImportViewProps> = (
   // Category editing state
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editBudgetValue, setEditBudgetValue] = useState<string>('');
+  const [categoryFilterSearch, setCategoryFilterSearch] = useState<string>('');
+  const [categoryTypeFilter, setCategoryTypeFilter] = useState<'all' | 'expense' | 'income'>('all');
 
   // Multi-File Import State
   const [uploadedFiles, setUploadedFiles] = useState<UploadedExpenseFile[]>([]);
@@ -95,7 +98,7 @@ export const CategoriesAndImportView: React.FC<CategoriesAndImportViewProps> = (
     typeCol: '',
     paymentMethodCol: '',
     defaultType: 'expense',
-    defaultCategory: categories.find((c) => c.name.toLowerCase() === 'others')?.id || 'cat-others',
+    defaultCategory: categories.find((c) => c.id === 'cat-personal')?.id || categories[0]?.id || 'cat-personal',
     dateFormat: 'DD/MM/YY',
   });
   const [importErrors, setImportErrors] = useState<string[]>([]);
@@ -355,7 +358,7 @@ export const CategoriesAndImportView: React.FC<CategoriesAndImportViewProps> = (
                 Category Architecture & Budget Limits
               </h2>
               <p className="text-[11px] text-slate-500">
-                15 Core System Categories + Custom user-defined streams
+                {categories.length} Categories Architecture & Budget Limits
               </p>
             </div>
 
@@ -507,9 +510,52 @@ export const CategoriesAndImportView: React.FC<CategoriesAndImportViewProps> = (
             </form>
           )}
 
+          {/* Search and Filters for Categories */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+            <div className="relative flex-1">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={categoryFilterSearch}
+                onChange={(e) => setCategoryFilterSearch(e.target.value)}
+                placeholder="Search categories (e.g. Agra, Shadi, Card, Rent, Gym)..."
+                className="w-full pl-8 pr-7 py-1.5 bg-white rounded-lg border border-slate-200 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500"
+              />
+              {categoryFilterSearch && (
+                <button
+                  type="button"
+                  onClick={() => setCategoryFilterSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium px-1">
+              Showing{' '}
+              <strong className="text-slate-700">
+                {categories.filter((c) =>
+                  categoryFilterSearch.trim()
+                    ? c.name.toLowerCase().includes(categoryFilterSearch.toLowerCase().trim()) ||
+                      c.description?.toLowerCase().includes(categoryFilterSearch.toLowerCase().trim())
+                    : true
+                ).length}
+              </strong>{' '}
+              of {categories.length} categories
+            </div>
+          </div>
+
           {/* Categories Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {categories.map((cat) => {
+            {categories
+              .filter((c) =>
+                categoryFilterSearch.trim()
+                  ? c.name.toLowerCase().includes(categoryFilterSearch.toLowerCase().trim()) ||
+                    c.description?.toLowerCase().includes(categoryFilterSearch.toLowerCase().trim())
+                  : true
+              )
+              .map((cat) => {
               const isEditing = editingCatId === cat.id;
 
               return (
@@ -1088,6 +1134,27 @@ export const CategoriesAndImportView: React.FC<CategoriesAndImportViewProps> = (
                 className="px-3 py-1.5 rounded-xl bg-white hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-bold cursor-pointer transition-colors shadow-xs"
               >
                 Clear All
+              </button>
+            </div>
+
+            {/* Reset Categories to Default (60 categories) */}
+            <div className="p-3.5 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-between">
+              <div>
+                <div className="text-xs font-semibold text-indigo-900">Reset to Standard Categories (60)</div>
+                <div className="text-[10px] text-indigo-600">
+                  Restores the full user-specified set of 60 standard categories.
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (confirm('Reset categories to the full list of 60 standard categories?')) {
+                    resetToDefaultCategories();
+                    window.location.reload();
+                  }
+                }}
+                className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold cursor-pointer transition-colors shadow-xs"
+              >
+                Reset (60 Categories)
               </button>
             </div>
           </div>
