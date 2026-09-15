@@ -49,11 +49,12 @@ if (-not (Test-Path "capacitor.config.*")) {
 
 # Check if android folder already exists
 if (-not (Test-Path "android")) {
+    Write-Host "Creating Android platform container..." -ForegroundColor Cyan
     npx cap add android
-} else {
-    Write-Host "ℹ️  Android folder already exists, syncing latest web build..." -ForegroundColor Cyan
-    npx cap sync android
 }
+
+Write-Host "ℹ️  Syncing compiled relative web assets into Android project..." -ForegroundColor Cyan
+npx cap sync android
 
 Write-Host "✅ Android project ready!" -ForegroundColor Green
 Write-Host ""

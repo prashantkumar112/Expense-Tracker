@@ -13,17 +13,22 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="ExpenseTracker" />
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-    <script id="google-gsi-client" src="https://accounts.google.com/gsi/client" async defer></script>
   </head>
   <body class="bg-[#F8FAFC] text-slate-800 antialiased selection:bg-indigo-500 selection:text-white font-['Plus_Jakarta_Sans',sans-serif]">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <div id="root">
+      <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background-color:#F8FAFC;font-family:system-ui,-apple-system,sans-serif;color:#1E293B;padding:24px;text-align:center;">
+        <div style="width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#4F46E5,#7C3AED);display:flex;align-items:center;justify-content:center;color:#ffffff;font-size:24px;font-weight:800;margin-bottom:16px;box-shadow:0 10px 25px -5px rgba(79,70,229,0.4);">₹</div>
+        <div style="font-size:17px;font-weight:700;color:#0F172A;margin-bottom:6px;">Expense Tracker</div>
+        <div style="font-size:13px;color:#64748B;">Starting application...</div>
+      </div>
+    </div>
+    <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>
 

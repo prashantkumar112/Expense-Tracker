@@ -33,16 +33,17 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  // Ignore non-http requests (e.g. capacitor, chrome-extension)
+  if (!event.request.url.startsWith('http')) return;
+
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      return (
-        cachedResponse ||
-        fetch(event.request).then((response) => {
-          return response;
-        }).catch(() => {
-          return caches.match('/index.html');
-        })
-      );
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      return fetch(event.request).catch(() => {
+        return caches.match('/index.html') || fetch(event.request);
+      });
     })
   );
 });

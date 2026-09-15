@@ -22,9 +22,9 @@ import { isMonthlySyncDue, syncExpensesToGoogleSheets } from './utils/googleShee
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [currency, setCurrency] = useState<CurrencyConfig>(getStoredCurrency());
+  const [transactions, setTransactions] = useState<Transaction[]>(() => getStoredTransactions());
+  const [categories, setCategories] = useState<Category[]>(() => getStoredCategories());
+  const [currency, setCurrency] = useState<CurrencyConfig>(() => getStoredCurrency());
   const [isPhoneFrame, setIsPhoneFrame] = useState<boolean>(false);
 
   // Modal State
@@ -45,16 +45,11 @@ export default function App() {
     }, 3200);
   };
 
-  // Initial Load from Storage
+  // Initial Check for Google Sheets Sync
   useEffect(() => {
     const storedCats = getStoredCategories();
     const storedTxs = getStoredTransactions();
     const storedCurr = getStoredCurrency();
-
-    // Set initial storage states
-    setCategories(storedCats);
-    setTransactions(storedTxs);
-    setCurrency(storedCurr);
 
     // Check if automated monthly sync is due
     if (isMonthlySyncDue() && storedTxs.length > 0) {
