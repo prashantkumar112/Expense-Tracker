@@ -248,25 +248,25 @@ export const BudgetReportsView: React.FC<BudgetReportsViewProps> = ({
               <div>
                 <div className="text-[10px] text-indigo-200 font-semibold uppercase">Total Inflow</div>
                 <div className="text-base sm:text-lg font-bold text-emerald-400">
-                  {formatCurrency(monthlyReport.totalIncome, currency)}
+                  +{formatCurrency(monthlyReport.totalIncome, currency)}
                 </div>
               </div>
               <div>
                 <div className="text-[10px] text-indigo-200 font-semibold uppercase">Total Outflow</div>
                 <div className="text-base sm:text-lg font-bold text-rose-400">
-                  {formatCurrency(monthlyReport.totalExpense, currency)}
+                  -{formatCurrency(monthlyReport.totalExpense, currency)}
                 </div>
               </div>
               <div>
                 <div className="text-[10px] text-indigo-200 font-semibold uppercase">Net Savings</div>
-                <div className="text-base sm:text-lg font-bold text-indigo-300">
-                  {formatCurrency(monthlyReport.netSavings, currency)}
+                <div className={`text-base sm:text-lg font-bold ${monthlyReport.netSavings >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {monthlyReport.netSavings >= 0 ? '+' : ''}{formatCurrency(monthlyReport.netSavings, currency)}
                 </div>
               </div>
               <div>
                 <div className="text-[10px] text-indigo-200 font-semibold uppercase">Savings Rate</div>
-                <div className="text-base sm:text-lg font-bold text-emerald-400">
-                  {monthlyReport.savingsRate.toFixed(1)}%
+                <div className={`text-base sm:text-lg font-bold ${monthlyReport.savingsRate >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {monthlyReport.savingsRate >= 0 ? '+' : ''}{monthlyReport.savingsRate.toFixed(1)}%
                 </div>
               </div>
             </div>
@@ -284,9 +284,15 @@ export const BudgetReportsView: React.FC<BudgetReportsViewProps> = ({
                 <div>
                   <span className="font-semibold text-slate-900">Budget Adherence: </span>
                   <span className="text-slate-600">
-                    {monthlyReport.isOverBudget
-                      ? `Exceeded planned budget by ${formatCurrency(monthlyReport.budgetVariance, currency)}.`
-                      : `Successfully operated ${formatCurrency(Math.abs(monthlyReport.budgetVariance), currency)} below ceiling.`}
+                    {monthlyReport.isOverBudget ? (
+                      <span className="text-rose-600 font-bold">
+                        Exceeded planned budget by -{formatCurrency(monthlyReport.budgetVariance, currency)}.
+                      </span>
+                    ) : (
+                      <span className="text-emerald-600 font-bold">
+                        Successfully operated +{formatCurrency(Math.abs(monthlyReport.budgetVariance), currency)} below ceiling.
+                      </span>
+                    )}
                   </span>
                 </div>
               </div>
@@ -326,11 +332,15 @@ export const BudgetReportsView: React.FC<BudgetReportsViewProps> = ({
                       <div className="flex items-center gap-2">
                         <CategoryIcon iconName={cat.icon} color={cat.color} size={14} />
                         <span className="font-bold text-slate-800">{cat.categoryName}</span>
-                        {isOver && (
+                        {isOver ? (
                           <span className="text-[9px] px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 border border-rose-200 font-semibold">
-                            Over by {formatCurrency(cat.variance, currency)}
+                            Over by -{formatCurrency(cat.variance, currency)}
                           </span>
-                        )}
+                        ) : cat.budget > 0 ? (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
+                            +{formatCurrency(cat.budget - cat.actual, currency)} under
+                          </span>
+                        ) : null}
                       </div>
 
                       <div className="text-right">
@@ -409,19 +419,19 @@ export const BudgetReportsView: React.FC<BudgetReportsViewProps> = ({
               <div>
                 <div className="text-[10px] text-indigo-200 font-semibold uppercase">Annual Inflow</div>
                 <div className="text-base sm:text-lg font-bold text-emerald-400">
-                  {formatCurrency(yearlyReport.totalIncome, currency)}
+                  +{formatCurrency(yearlyReport.totalIncome, currency)}
                 </div>
               </div>
               <div>
                 <div className="text-[10px] text-indigo-200 font-semibold uppercase">Annual Outflow</div>
                 <div className="text-base sm:text-lg font-bold text-rose-400">
-                  {formatCurrency(yearlyReport.totalExpense, currency)}
+                  -{formatCurrency(yearlyReport.totalExpense, currency)}
                 </div>
               </div>
               <div>
                 <div className="text-[10px] text-indigo-200 font-semibold uppercase">Annual Savings</div>
-                <div className="text-base sm:text-lg font-bold text-indigo-300">
-                  {formatCurrency(yearlyReport.netSavings, currency)}
+                <div className={`text-base sm:text-lg font-bold ${yearlyReport.netSavings >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {yearlyReport.netSavings >= 0 ? '+' : ''}{formatCurrency(yearlyReport.netSavings, currency)}
                 </div>
               </div>
               <div>
@@ -452,16 +462,16 @@ export const BudgetReportsView: React.FC<BudgetReportsViewProps> = ({
                     <tr key={q.quarter} className="hover:bg-slate-50 transition-colors">
                       <td className="py-2.5 font-bold text-slate-800">{q.quarter}</td>
                       <td className="py-2.5 text-right text-emerald-600 font-semibold">
-                        {formatCurrency(q.income, currency)}
+                        +{formatCurrency(q.income, currency)}
                       </td>
                       <td className="py-2.5 text-right text-rose-600 font-semibold">
-                        {formatCurrency(q.expense, currency)}
+                        -{formatCurrency(q.expense, currency)}
                       </td>
-                      <td className="py-2.5 text-right text-indigo-600 font-bold">
-                        {formatCurrency(q.savings, currency)}
+                      <td className={`py-2.5 text-right font-bold ${q.savings >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {q.savings >= 0 ? '+' : ''}{formatCurrency(q.savings, currency)}
                       </td>
-                      <td className="py-2.5 text-right text-slate-600 font-medium">
-                        {q.income > 0 ? `${((q.savings / q.income) * 100).toFixed(1)}%` : '0%'}
+                      <td className={`py-2.5 text-right font-semibold ${q.savings >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {q.income > 0 ? `${q.savings >= 0 ? '+' : ''}${((q.savings / q.income) * 100).toFixed(1)}%` : '0%'}
                       </td>
                     </tr>
                   ))}

@@ -36,7 +36,10 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [amount, setAmount] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
   const [description, setDescription] = useState<string>('');
-  const [date, setDate] = useState<string>(new Date().toISOString().substring(0, 10));
+  const [date, setDate] = useState<string>(new Date().toISOString().substring(0, 10)); // Actual transaction date
+  const [createdDate, setCreatedDate] = useState<string>(new Date().toISOString().substring(0, 10)); // Date transaction was created
+  const [transactionMonth, setTransactionMonth] = useState<string>(new Date().toISOString().substring(0, 7)); // Cash flow month
+  const [autoSyncMonth, setAutoSyncMonth] = useState<boolean>(true);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('UPI');
   const [excludeFromCashflow, setExcludeFromCashflow] = useState<boolean>(false);
   const [notes, setNotes] = useState<string>('');
@@ -46,12 +49,19 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
   // Populate when editing or switching
   useEffect(() => {
+    const today = new Date().toISOString().substring(0, 10);
     if (editingTransaction) {
       setType(editingTransaction.type);
       setAmount(editingTransaction.amount.toString());
       setCategoryId(editingTransaction.categoryId);
       setDescription(editingTransaction.description || '');
-      setDate(editingTransaction.date);
+      const txDate = editingTransaction.date || today;
+      setDate(txDate);
+      const cDate = editingTransaction.createdDate || (editingTransaction.createdAt ? new Date(editingTransaction.createdAt).toISOString().substring(0, 10) : today);
+      setCreatedDate(cDate);
+      const txMonth = editingTransaction.transactionMonth || txDate.substring(0, 7);
+      setTransactionMonth(txMonth);
+      setAutoSyncMonth(txMonth === txDate.substring(0, 7));
       setPaymentMethod(editingTransaction.paymentMethod || 'UPI');
       setExcludeFromCashflow(
         editingTransaction.excludeFromCashflow !== undefined
@@ -64,7 +74,10 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       setType(initialType);
       setAmount('');
       setDescription('');
-      setDate(new Date().toISOString().substring(0, 10));
+      setDate(today);
+      setCreatedDate(today);
+      setTransactionMonth(today.substring(0, 7));
+      setAutoSyncMonth(true);
       setPaymentMethod('UPI');
       setExcludeFromCashflow(false);
       setNotes('');
@@ -80,6 +93,14 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     setCategorySearch('');
     setError('');
   }, [isOpen, editingTransaction, initialType, categories]);
+
+  // When actual transaction date changes, auto-update transaction month if autoSyncMonth is true
+  const handleDateChange = (newDate: string) => {
+    setDate(newDate);
+    if (autoSyncMonth && newDate) {
+      setTransactionMonth(newDate.substring(0, 7));
+    }
+  };
 
   // When payment method changes to Credit Card, suggest excluding from immediate cashflow
   const handlePaymentMethodChange = (method: PaymentMethod) => {
@@ -130,6 +151,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       categoryName: selectedCat.name,
       description: description.trim() || selectedCat.name,
       date,
+      createdDate: createdDate || new Date().toISOString().substring(0, 10),
+      transactionMonth: transactionMonth || date.substring(0, 7),
       paymentMethod,
       excludeFromCashflow: type === 'expense' && paymentMethod === 'Credit Card' ? excludeFromCashflow : false,
       notes: notes.trim(),
@@ -276,23 +299,49 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
           {/* Date & Payment Method */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
-                Transaction Date
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[10px] font-bold text-slate-700 uppercase">
+                  Transaction Date <span className="text-slate-400 font-normal">(Actual)</span>
+                </label>
+                <div className="flex items-center gap-1 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => handleDateChange(new Date().toISOString().substring(0, 10))}
+                    className="text-indigo-600 hover:text-indigo-800 font-semibold px-1 py-0.5 rounded hover:bg-indigo-50 transition-colors"
+                  >
+                    Today
+                  </button>
+                  <span className="text-slate-300">·</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const now = new Date();
+                      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+                      const ym = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}-01`;
+                      handleDateChange(ym);
+                    }}
+                    className="text-indigo-600 hover:text-indigo-800 font-semibold px-1 py-0.5 rounded hover:bg-indigo-50 transition-colors"
+                  >
+                    Next Month
+                  </button>
+                </div>
+              </div>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                 <input
                   type="date"
                   required
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                  onChange={(e) => handleDateChange(e.target.value)}
                   className="w-full bg-slate-50 text-slate-800 text-xs pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none cursor-pointer"
+                  title="Actual date of transaction (matches bank statement)"
                 />
               </div>
+              <p className="text-[9px] text-slate-400 mt-0.5">Used to match with your bank statement.</p>
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+              <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
                 Payment Method
               </label>
               <div className="relative">
@@ -311,6 +360,64 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                   <option value="Other">Other</option>
                 </select>
               </div>
+            </div>
+          </div>
+
+          {/* Created Date & Transaction Month for Cash Flow */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-50/80 rounded-xl border border-slate-200/70">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[10px] font-bold text-slate-600 uppercase">
+                  Created Date
+                </label>
+                <span className="text-[9px] text-slate-400">Logged on</span>
+              </div>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <input
+                  type="date"
+                  value={createdDate}
+                  onChange={(e) => setCreatedDate(e.target.value)}
+                  className="w-full bg-white text-slate-800 text-xs pl-8 pr-3 py-2 rounded-lg border border-slate-200 focus:outline-none"
+                  title="Date when transaction was created in app"
+                />
+              </div>
+              <p className="text-[9px] text-slate-400 mt-0.5">
+                {date === createdDate ? 'Same as transaction date' : 'Logged historical record'}
+              </p>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[10px] font-bold text-slate-600 uppercase">
+                  Transaction Month <span className="text-indigo-600 font-semibold">(Cash Flow)</span>
+                </label>
+                {date.substring(0, 7) !== transactionMonth && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTransactionMonth(date.substring(0, 7));
+                      setAutoSyncMonth(true);
+                    }}
+                    className="text-[9px] text-indigo-600 hover:underline font-semibold"
+                  >
+                    Sync to date
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type="month"
+                  value={transactionMonth}
+                  onChange={(e) => {
+                    setTransactionMonth(e.target.value);
+                    setAutoSyncMonth(false);
+                  }}
+                  className="w-full bg-white text-slate-800 text-xs px-3 py-2 rounded-lg border border-slate-200 focus:outline-none"
+                  title="Month used to calculate monthly cash flow"
+                />
+              </div>
+              <p className="text-[9px] text-slate-400 mt-0.5">Used to calculate monthly cash flow.</p>
             </div>
           </div>
 

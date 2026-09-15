@@ -42,10 +42,15 @@ export function generateSampleTransactions(): Transaction[] {
 
   for (const yr of years) {
     for (let m = 1; m <= yr.maxMonth; m++) {
+      const monthPrefix = `${yr.year}-${String(m).padStart(2, '0')}`;
+
       // 1. Primary Salary Income on 1st
+      const d1 = formatDate(yr.year, m, 1);
       transactions.push({
         id: `tx-${idCounter++}`,
-        date: formatDate(yr.year, m, 1),
+        date: d1,
+        createdDate: d1,
+        transactionMonth: monthPrefix,
         amount: yr.salaryBase,
         type: 'income',
         categoryId: 'cat-salary',
@@ -58,9 +63,12 @@ export function generateSampleTransactions(): Transaction[] {
 
       // 2. Occasional Freelance / Consulting Income
       if (m % 2 === 0) {
+        const d16 = formatDate(yr.year, m, 16);
         transactions.push({
           id: `tx-${idCounter++}`,
-          date: formatDate(yr.year, m, 16),
+          date: d16,
+          createdDate: d16,
+          transactionMonth: monthPrefix,
           amount: Math.round(25000 * yr.inflationMod),
           type: 'income',
           categoryId: 'cat-freelance',
@@ -73,9 +81,12 @@ export function generateSampleTransactions(): Transaction[] {
 
       // 3. Investment Dividend / Quarterly Interest in Mar, Jun, Sep, Dec
       if (m % 3 === 0) {
+        const d28 = formatDate(yr.year, m, 28);
         transactions.push({
           id: `tx-${idCounter++}`,
-          date: formatDate(yr.year, m, 28),
+          date: d28,
+          createdDate: d28,
+          transactionMonth: monthPrefix,
           amount: Math.round((12000 + m * 600) * yr.inflationMod),
           type: 'income',
           categoryId: 'cat-investment-return',
@@ -88,9 +99,12 @@ export function generateSampleTransactions(): Transaction[] {
 
       // 4. Annual Bonus in March (Q1 appraisal)
       if (m === 3) {
+        const d25 = formatDate(yr.year, m, 25);
         transactions.push({
           id: `tx-${idCounter++}`,
-          date: formatDate(yr.year, m, 25),
+          date: d25,
+          createdDate: d25,
+          transactionMonth: monthPrefix,
           amount: Math.round(150000 * yr.inflationMod),
           type: 'income',
           categoryId: 'cat-bonus-other',
@@ -114,10 +128,13 @@ export function generateSampleTransactions(): Transaction[] {
 
         // Slight adjustment for day to avoid invalid leap year dates
         const day = Math.min(item.day, 28);
+        const expDate = formatDate(yr.year, m, day);
 
         transactions.push({
           id: `tx-${idCounter++}`,
-          date: formatDate(yr.year, m, day),
+          date: expDate,
+          createdDate: expDate,
+          transactionMonth: monthPrefix,
           amount: amt,
           type: 'expense',
           categoryId: item.catId,
@@ -132,9 +149,12 @@ export function generateSampleTransactions(): Transaction[] {
       // 6. Occasional mid-month extra expense (e.g. festive shopping or travel)
       if (m === 10 || m === 11) {
         // Diwali/Festival period
+        const d23 = formatDate(yr.year, m, 23);
         transactions.push({
           id: `tx-${idCounter++}`,
-          date: formatDate(yr.year, m, 23),
+          date: d23,
+          createdDate: d23,
+          transactionMonth: monthPrefix,
           amount: Math.round(18000 * yr.inflationMod),
           type: 'expense',
           categoryId: 'cat-personal',

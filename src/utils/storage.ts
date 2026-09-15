@@ -104,7 +104,18 @@ export function getStoredTransactions(): Transaction[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed;
+        // Normalize records to ensure createdDate & transactionMonth exist
+        return parsed.map((t: any) => {
+          const date = t.date || new Date().toISOString().substring(0, 10);
+          const createdDate = t.createdDate || (t.createdAt ? new Date(t.createdAt).toISOString().substring(0, 10) : date);
+          const transactionMonth = t.transactionMonth || date.substring(0, 7);
+          return {
+            ...t,
+            date,
+            createdDate,
+            transactionMonth,
+          };
+        });
       }
     }
     // If first visit, initialize with an empty clean ledger

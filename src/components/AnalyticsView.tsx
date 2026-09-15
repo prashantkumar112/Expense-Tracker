@@ -268,6 +268,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         const d = payload[0].payload as any;
+                        const isPositive = d.expenseDiff >= 0;
                         return (
                           <div className="bg-slate-900 text-white border border-slate-700 p-3 rounded-xl text-xs shadow-2xl">
                             <div className="font-bold text-slate-100 text-sm mb-1">{d.quarter} Comparison</div>
@@ -279,8 +280,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                             </div>
                             <div className="mt-1 pt-1 border-t border-slate-700 flex items-center gap-1 font-semibold">
                               <span>YoY Delta:</span>
-                              <span className={d.expenseDiff >= 0 ? 'text-rose-400' : 'text-emerald-400'}>
-                                {d.expenseDiff >= 0 ? '+' : ''}
+                              <span className={isPositive ? 'text-emerald-400' : 'text-rose-400'}>
+                                {isPositive ? '+' : ''}
                                 {formatCurrency(d.expenseDiff, currency)} ({d.expenseDiffPct >= 0 ? '+' : ''}
                                 {d.expenseDiffPct.toFixed(1)}%)
                               </span>
@@ -318,12 +319,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     <span className="font-bold text-xs text-slate-800">{q.quarter}</span>
                     <span
                       className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
-                        isIncrease
-                          ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        q.expenseDiffPct >= 0
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-rose-50 text-rose-700 border border-rose-200'
                       }`}
                     >
-                      {isIncrease ? '+' : ''}
+                      {q.expenseDiffPct >= 0 ? '+' : ''}
                       {q.expenseDiffPct.toFixed(1)}%
                     </span>
                   </div>
@@ -365,7 +366,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {quarterCategoryRows.map((row) => {
-                    const isUp = row.diff > 0;
+                    const isPositive = row.diff >= 0;
                     return (
                       <tr
                         key={row.name}
@@ -383,19 +384,19 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                           {formatCurrency(row.v2, currency)}
                         </td>
                         <td
-                          className={`py-2.5 text-right font-medium ${
-                            isUp ? 'text-rose-600' : 'text-emerald-600'
+                          className={`py-2.5 text-right font-semibold ${
+                            isPositive ? 'text-emerald-600' : 'text-rose-600'
                           }`}
                         >
-                          {isUp ? '+' : ''}
+                          {isPositive ? '+' : ''}
                           {formatCurrency(row.diff, currency)}
                         </td>
                         <td
                           className={`py-2.5 text-right font-bold ${
-                            isUp ? 'text-rose-600' : 'text-emerald-600'
+                            row.pct >= 0 ? 'text-emerald-600' : 'text-rose-600'
                           }`}
                         >
-                          {isUp ? '+' : ''}
+                          {row.pct >= 0 ? '+' : ''}
                           {row.pct.toFixed(1)}%
                         </td>
                       </tr>
@@ -468,8 +469,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                             <div className="font-bold text-slate-100 mb-1">{data.fullName} {selectedYear}</div>
                             <div className="text-emerald-400">Income: {formatCurrency(data.income, currency)}</div>
                             <div className="text-rose-400">Expense: {formatCurrency(data.expense, currency)}</div>
-                            <div className="text-indigo-300 font-semibold mt-1">
-                              Savings: {formatCurrency(data.savings, currency)} ({data.savingsRate.toFixed(1)}%)
+                            <div className={`font-semibold mt-1 ${data.savings >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              Savings: {data.savings >= 0 ? '+' : ''}{formatCurrency(data.savings, currency)} ({data.savingsRate.toFixed(1)}%)
                             </div>
                           </div>
                         );
@@ -518,11 +519,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         const d = payload[0].payload;
+                        const isPositive = d.savings >= 0;
                         return (
                           <div className="bg-slate-900 text-white border border-slate-700 p-2.5 rounded-xl text-xs">
                             <div className="font-bold text-slate-200">{d.fullName}</div>
-                            <div className={d.savings >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
-                              Net: {formatCurrency(d.savings, currency)}
+                            <div className={`font-semibold ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              Net: {isPositive ? '+' : ''}{formatCurrency(d.savings, currency)}
                             </div>
                           </div>
                         );
@@ -533,9 +535,15 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   <Bar
                     dataKey="savings"
                     name="Savings"
-                    fill="#6366F1"
                     radius={[4, 4, 0, 0]}
-                  />
+                  >
+                    {monthlyTrends.map((entry, index) => (
+                      <Cell
+                        key={`savings-cell-${index}`}
+                        fill={entry.savings >= 0 ? '#10B981' : '#EF4444'}
+                      />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -703,8 +711,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                             <div className="text-indigo-300 font-bold">
                               Savings Rate: {d.savingsRate.toFixed(1)}%
                             </div>
-                            <div className="text-slate-300">
-                              Net Saved: {formatCurrency(d.savings, currency)}
+                            <div className={`font-semibold ${d.savings >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              Net Saved: {d.savings >= 0 ? '+' : ''}{formatCurrency(d.savings, currency)}
                             </div>
                           </div>
                         );

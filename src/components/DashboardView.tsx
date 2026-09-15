@@ -28,7 +28,12 @@ import {
 import { Category, Transaction } from '../types';
 import { CurrencyConfig, formatCurrency } from '../utils/storage';
 import { CategoryIcon } from './CategoryIcon';
-import { getCategorySpendBreakdown, getMonthlySpendTrends, parseTxDateComponents } from '../utils/financialAnalytics';
+import {
+  getCategorySpendBreakdown,
+  getMonthlySpendTrends,
+  parseTxDateComponents,
+  parseTxCashflowComponents,
+} from '../utils/financialAnalytics';
 
 interface DashboardViewProps {
   transactions: Transaction[];
@@ -50,7 +55,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
 
-  const [selectedPeriod, setSelectedPeriod] = useState<'thisMonth' | 'last3Months' | 'thisYear' | 'all'>('thisMonth');
+  const [selectedPeriod, setSelectedPeriod] = useState<'thisMonth' | 'nextMonth' | 'last3Months' | 'thisYear' | 'all'>('thisMonth');
   const [cashflowMode, setCashflowMode] = useState<'cashflow' | 'accrual'>('cashflow');
 
   // Filter transactions based on selected period
@@ -59,11 +64,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const curY = now.getFullYear();
     const curM = now.getMonth() + 1;
 
+    // Next month calculation
+    const nextDate = new Date(curY, curM, 1);
+    const nextY = nextDate.getFullYear();
+    const nextM = nextDate.getMonth() + 1;
+
     return transactions.filter((t) => {
-      const { year: ty, month: tm } = parseTxDateComponents(t.date);
+      // Use transactionMonth (or fall back to actual transaction date) for monthly cash flow
+      const { year: ty, month: tm } = parseTxCashflowComponents(t);
 
       if (selectedPeriod === 'thisMonth') {
         return ty === curY && tm === curM;
+      }
+      if (selectedPeriod === 'nextMonth') {
+        return ty === nextY && tm === nextM;
       }
       if (selectedPeriod === 'last3Months') {
         // Last 3 months
@@ -190,6 +204,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-xs text-xs font-semibold text-slate-500 overflow-x-auto scrollbar-none">
           {[
             { id: 'thisMonth', label: 'This Month' },
+            { id: 'nextMonth', label: 'Next Month' },
             { id: 'last3Months', label: '3 Months' },
             { id: 'thisYear', label: `${currentYear}` },
             { id: 'all', label: 'All Time' },
@@ -277,11 +292,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <Wallet size={16} className="text-indigo-300" />
           </div>
           <div className={`text-xl sm:text-2xl font-bold tracking-tight ${stats.net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-            {formatCurrency(stats.net, currency)}
+            {stats.net >= 0 ? '+' : ''}{formatCurrency(stats.net, currency)}
           </div>
           <div className="mt-1 flex items-center gap-1 text-[11px] text-slate-300">
             <span>Savings Rate:</span>
-            <span className="font-bold text-emerald-400">{stats.savingsRate.toFixed(1)}%</span>
+            <span className={`font-bold ${stats.savingsRate >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {stats.savingsRate >= 0 ? '+' : ''}{stats.savingsRate.toFixed(1)}%
+            </span>
           </div>
         </div>
 
@@ -294,7 +311,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
           <div className="text-lg font-bold text-emerald-600 tracking-tight">
-            {formatCurrency(stats.income, currency)}
+            +{formatCurrency(stats.income, currency)}
           </div>
           <div className="text-[10px] text-slate-400 mt-1">Earnings & Returns</div>
         </div>
@@ -310,7 +327,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
           <div className="text-lg font-bold text-rose-600 tracking-tight">
-            {formatCurrency(stats.expense, currency)}
+            -{formatCurrency(stats.expense, currency)}
           </div>
           <div className="text-[10px] text-slate-400 mt-1">
             {cashflowMode === 'cashflow' ? 'Actual bank deductions' : 'All categories combined'}
@@ -321,14 +338,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
             <span className="font-medium">Bank Balance Impact</span>
-            <div className="p-1 rounded-md bg-indigo-50 text-indigo-600">
-              <PiggyBank size={14} />
+            <div className={`p-1 rounded-md ${stats.net >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+              {stats.net >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
             </div>
           </div>
-          <div className="text-lg font-bold text-indigo-600 tracking-tight">
-            {formatCurrency(Math.max(0, stats.net), currency)}
+          <div className={`text-lg font-bold tracking-tight ${stats.net >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+            {stats.net >= 0 ? '+' : ''}{formatCurrency(stats.net, currency)}
           </div>
-          <div className="text-[10px] text-slate-400 mt-1">Retained liquidity</div>
+          <div className="text-[10px] text-slate-400 mt-1">
+            {stats.net >= 0 ? 'Positive retained liquidity' : 'Net cash deficit'}
+          </div>
         </div>
       </div>
 
@@ -354,10 +373,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             >
               {budgetSummary.percentUsed.toFixed(0)}% Used
             </span>
-            <p className="text-[10px] text-slate-500 mt-0.5 font-medium">
-              {budgetSummary.isOver
-                ? `${formatCurrency(Math.abs(budgetSummary.remaining), currency)} over`
-                : `${formatCurrency(budgetSummary.remaining, currency)} left`}
+            <p className="text-[10px] mt-0.5 font-medium">
+              {budgetSummary.isOver ? (
+                <span className="text-rose-600 font-bold">
+                  -{formatCurrency(Math.abs(budgetSummary.remaining), currency)} over
+                </span>
+              ) : (
+                <span className="text-emerald-600 font-bold">
+                  +{formatCurrency(budgetSummary.remaining, currency)} left
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -425,8 +450,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         <div className="font-bold text-slate-100 mb-1">{data.fullName}</div>
                         <div className="text-emerald-400">Income: {formatCurrency(data.income, currency)}</div>
                         <div className="text-rose-400">Expense: {formatCurrency(data.expense, currency)}</div>
-                        <div className="text-indigo-300 mt-0.5 font-semibold">
-                          Savings: {formatCurrency(data.savings, currency)} ({data.savingsRate.toFixed(1)}%)
+                        <div className={`mt-0.5 font-semibold ${data.savings >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          Savings: {data.savings >= 0 ? '+' : ''}{formatCurrency(data.savings, currency)} ({data.savingsRate.toFixed(1)}%)
                         </div>
                       </div>
                     );

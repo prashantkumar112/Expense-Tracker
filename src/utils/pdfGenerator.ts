@@ -50,10 +50,18 @@ export function generateMonthlyReportPdf(
   const kpiTop = 46;
   const kpiWidth = (pageWidth - 28 - 9) / 4;
   const kpis = [
-    { title: 'Total Income', val: formatCurrency(report.totalIncome, currency), color: [16, 185, 129] },
-    { title: 'Total Expense', val: formatCurrency(report.totalExpense, currency), color: [239, 68, 68] },
-    { title: 'Net Savings', val: formatCurrency(report.netSavings, currency), color: [59, 130, 246] },
-    { title: 'Savings Rate', val: `${report.savingsRate.toFixed(1)}%`, color: [139, 92, 246] },
+    { title: 'Total Income', val: `+${formatCurrency(report.totalIncome, currency)}`, color: [16, 185, 129] },
+    { title: 'Total Expense', val: `-${formatCurrency(report.totalExpense, currency)}`, color: [239, 68, 68] },
+    {
+      title: 'Net Savings',
+      val: `${report.netSavings >= 0 ? '+' : ''}${formatCurrency(report.netSavings, currency)}`,
+      color: report.netSavings >= 0 ? [16, 185, 129] : [239, 68, 68],
+    },
+    {
+      title: 'Savings Rate',
+      val: `${report.savingsRate >= 0 ? '+' : ''}${report.savingsRate.toFixed(1)}%`,
+      color: report.savingsRate >= 0 ? [16, 185, 129] : [239, 68, 68],
+    },
   ];
 
   kpis.forEach((kpi, index) => {
@@ -149,9 +157,13 @@ export function generateYearlyReportPdf(
   const kpiTop = 48;
   const kpiWidth = (pageWidth - 28 - 9) / 4;
   const kpis = [
-    { title: 'Annual Income', val: formatCurrency(report.totalIncome, currency), color: [16, 185, 129] },
-    { title: 'Annual Expenses', val: formatCurrency(report.totalExpense, currency), color: [239, 68, 68] },
-    { title: 'Annual Savings', val: formatCurrency(report.netSavings, currency), color: [59, 130, 246] },
+    { title: 'Annual Income', val: `+${formatCurrency(report.totalIncome, currency)}`, color: [16, 185, 129] },
+    { title: 'Annual Expenses', val: `-${formatCurrency(report.totalExpense, currency)}`, color: [239, 68, 68] },
+    {
+      title: 'Annual Savings',
+      val: `${report.netSavings >= 0 ? '+' : ''}${formatCurrency(report.netSavings, currency)}`,
+      color: report.netSavings >= 0 ? [16, 185, 129] : [239, 68, 68],
+    },
     { title: 'Avg Monthly Burn', val: formatCurrency(report.averageMonthlyExpense, currency), color: [245, 158, 11] },
   ];
 

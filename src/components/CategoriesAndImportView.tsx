@@ -14,6 +14,7 @@ import {
   FileText,
   FileCheck,
   Calendar,
+  CalendarDays,
   Layers,
   ArrowRight,
   Info,
@@ -29,6 +30,7 @@ import {
   generateSampleExcelTemplate,
   mapAndImportTransactions,
   parseFlexibleDate,
+  parseFlexibleMonth,
   parseMultipleExpenseFiles,
 } from '../utils/csvHelper';
 import { GoogleSheetsSyncPanel } from './GoogleSheetsSyncPanel';
@@ -92,6 +94,8 @@ export const CategoriesAndImportView: React.FC<CategoriesAndImportViewProps> = (
   const [isProcessingFiles, setIsProcessingFiles] = useState(false);
   const [mappingConfig, setMappingConfig] = useState<CsvMappingConfig>({
     dateCol: '',
+    createdDateCol: '',
+    transactionMonthCol: '',
     amountCol: '',
     descCol: '',
     categoryCol: '',
@@ -172,6 +176,8 @@ export const CategoriesAndImportView: React.FC<CategoriesAndImportViewProps> = (
         setMappingConfig((prev) => ({
           ...prev,
           dateCol: detected.dateCol || prev.dateCol,
+          createdDateCol: detected.createdDateCol || prev.createdDateCol,
+          transactionMonthCol: detected.transactionMonthCol || prev.transactionMonthCol,
           amountCol: detected.amountCol || prev.amountCol,
           debitCol: detected.debitCol || prev.debitCol,
           creditCol: detected.creditCol || prev.creditCol,
@@ -226,8 +232,8 @@ export const CategoriesAndImportView: React.FC<CategoriesAndImportViewProps> = (
       return;
     }
 
-    if (!mappingConfig.dateCol || !mappingConfig.amountCol) {
-      setImportErrors(['Please map at least the "Created on" (Date) and "Amount" columns.']);
+    if ((!mappingConfig.dateCol && !mappingConfig.createdDateCol) || !mappingConfig.amountCol) {
+      setImportErrors(['Please map at least the Date ("Transaction Date" or "Created on") and "Amount" columns.']);
       return;
     }
 
@@ -686,37 +692,60 @@ export const CategoriesAndImportView: React.FC<CategoriesAndImportViewProps> = (
             </div>
 
             {/* Supported Columns Guide Banner */}
-            <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                <Info size={14} className="text-indigo-600" />
-                <span>Supported Columns in Historical Files:</span>
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                  <Info size={14} className="text-indigo-600" />
+                  <span>Supported Columns in Historical Files:</span>
+                </div>
+                <span className="text-[10px] text-slate-500 font-medium hidden sm:inline">
+                  Supports Excel (.xlsx, .xls) & CSV formats
+                </span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
                 <div className="p-2 rounded-xl bg-white border border-slate-200 shadow-2xs">
                   <div className="text-[10px] text-slate-400 font-bold uppercase">Column 1</div>
                   <div className="font-bold text-slate-800 mt-0.5">Description</div>
-                  <div className="text-[10px] text-slate-500">e.g. "Flat Rent Payment", "Groceries"</div>
+                  <div className="text-[10px] text-slate-500 truncate">e.g. "Flat Rent Payment"</div>
                 </div>
 
                 <div className="p-2 rounded-xl bg-white border border-slate-200 shadow-2xs">
                   <div className="text-[10px] text-slate-400 font-bold uppercase">Column 2</div>
-                  <div className="font-bold text-slate-800 mt-0.5">Amount</div>
-                  <div className="text-[10px] text-slate-500">e.g. 22000, 13500, 4200</div>
+                  <div className="font-bold text-slate-800 mt-0.5">Amount *</div>
+                  <div className="text-[10px] text-slate-500 truncate">e.g. 22000, 13500</div>
                 </div>
 
                 <div className="p-2 rounded-xl bg-indigo-50/60 border border-indigo-200 shadow-2xs">
                   <div className="text-[10px] text-indigo-500 font-bold uppercase">Column 3</div>
                   <div className="font-bold text-indigo-900 mt-0.5 flex items-center gap-1">
-                    <Calendar size={12} className="text-indigo-600" />
-                    <span>Created on</span>
+                    <Calendar size={11} className="text-indigo-600" />
+                    <span className="truncate">Created on</span>
                   </div>
-                  <div className="text-[10px] text-indigo-700 font-semibold">Format: DD/MM/YY (e.g. 01/08/24)</div>
+                  <div className="text-[10px] text-indigo-700 font-semibold truncate">Entry/Log date (DD/MM/YY)</div>
+                </div>
+
+                <div className="p-2 rounded-xl bg-sky-50/70 border border-sky-200 shadow-2xs">
+                  <div className="text-[10px] text-sky-600 font-bold uppercase">Column 4</div>
+                  <div className="font-bold text-sky-950 mt-0.5 flex items-center gap-1">
+                    <CalendarDays size={11} className="text-sky-600" />
+                    <span className="truncate">Transaction Date *</span>
+                  </div>
+                  <div className="text-[10px] text-sky-700 font-semibold truncate">Statement date (DD/MM/YY)</div>
+                </div>
+
+                <div className="p-2 rounded-xl bg-amber-50/60 border border-amber-200 shadow-2xs">
+                  <div className="text-[10px] text-amber-600 font-bold uppercase">Column 5</div>
+                  <div className="font-bold text-amber-950 mt-0.5 flex items-center gap-1">
+                    <Layers size={11} className="text-amber-600" />
+                    <span className="truncate">Transaction Month</span>
+                  </div>
+                  <div className="text-[10px] text-amber-700 font-semibold truncate">Cash flow (YYYY-MM)</div>
                 </div>
 
                 <div className="p-2 rounded-xl bg-white border border-slate-200 shadow-2xs">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase">Column 4</div>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">Column 6</div>
                   <div className="font-bold text-slate-800 mt-0.5">Category</div>
-                  <div className="text-[10px] text-slate-500">e.g. Rent, EMIs, Groceries, Kajal</div>
+                  <div className="text-[10px] text-slate-500 truncate">e.g. Rent, EMIs, Groceries</div>
                 </div>
               </div>
             </div>
@@ -898,7 +927,7 @@ export const CategoriesAndImportView: React.FC<CategoriesAndImportViewProps> = (
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
                   {/* 1. Description */}
                   <div className="bg-white p-2.5 rounded-xl border border-slate-200">
                     <label className="block text-[10px] font-bold text-slate-700 mb-1">
@@ -937,15 +966,36 @@ export const CategoriesAndImportView: React.FC<CategoriesAndImportViewProps> = (
                     </select>
                   </div>
 
-                  {/* 3. Created on (Date) */}
+                  {/* 3. Created on (Entry / Logged Date) */}
                   <div className="bg-indigo-50/60 p-2.5 rounded-xl border border-indigo-200">
-                    <label className="block text-[10px] font-bold text-indigo-900 mb-1">
-                      3. Created on (Date Column) *
+                    <label className="block text-[10px] font-bold text-indigo-900 mb-1 flex items-center gap-1">
+                      <Calendar size={11} className="text-indigo-600" />
+                      <span>3. Created on (Logged Date)</span>
+                    </label>
+                    <select
+                      value={mappingConfig.createdDateCol || ''}
+                      onChange={(e) => setMappingConfig({ ...mappingConfig, createdDateCol: e.target.value })}
+                      className="w-full bg-white text-indigo-900 p-2 rounded-lg border border-indigo-300 text-xs focus:outline-none font-medium"
+                    >
+                      <option value="">Auto / Current Date Fallback</option>
+                      {combinedHeaders.map((h) => (
+                        <option key={h} value={h}>
+                          {h}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* 4. Transaction Date (Statement Date) */}
+                  <div className="bg-sky-50/70 p-2.5 rounded-xl border border-sky-200">
+                    <label className="block text-[10px] font-bold text-sky-950 mb-1 flex items-center gap-1">
+                      <CalendarDays size={11} className="text-sky-600" />
+                      <span>4. Transaction Date (Statement Date) *</span>
                     </label>
                     <select
                       value={mappingConfig.dateCol}
                       onChange={(e) => setMappingConfig({ ...mappingConfig, dateCol: e.target.value })}
-                      className="w-full bg-white text-indigo-900 p-2 rounded-lg border border-indigo-300 text-xs focus:outline-none font-semibold"
+                      className="w-full bg-white text-sky-950 p-2 rounded-lg border border-sky-300 text-xs focus:outline-none font-semibold"
                     >
                       <option value="">Select Column</option>
                       {combinedHeaders.map((h) => (
@@ -956,10 +1006,30 @@ export const CategoriesAndImportView: React.FC<CategoriesAndImportViewProps> = (
                     </select>
                   </div>
 
-                  {/* 4. Category */}
+                  {/* 5. Transaction Month (Cash Flow Accounting Month) */}
+                  <div className="bg-amber-50/60 p-2.5 rounded-xl border border-amber-200">
+                    <label className="block text-[10px] font-bold text-amber-950 mb-1 flex items-center gap-1">
+                      <Layers size={11} className="text-amber-600" />
+                      <span>5. Transaction Month (Cash Flow)</span>
+                    </label>
+                    <select
+                      value={mappingConfig.transactionMonthCol || ''}
+                      onChange={(e) => setMappingConfig({ ...mappingConfig, transactionMonthCol: e.target.value })}
+                      className="w-full bg-white text-amber-950 p-2 rounded-lg border border-amber-300 text-xs focus:outline-none font-medium"
+                    >
+                      <option value="">Auto (From Transaction Date)</option>
+                      {combinedHeaders.map((h) => (
+                        <option key={h} value={h}>
+                          {h}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* 6. Category */}
                   <div className="bg-white p-2.5 rounded-xl border border-slate-200">
                     <label className="block text-[10px] font-bold text-slate-700 mb-1">
-                      4. Category Column
+                      6. Category Column
                     </label>
                     <select
                       value={mappingConfig.categoryCol}
@@ -980,7 +1050,7 @@ export const CategoriesAndImportView: React.FC<CategoriesAndImportViewProps> = (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-500 mb-1">
-                      "Created on" Date Format
+                      Date Format (Created on / Txn Date)
                     </label>
                     <select
                       value={mappingConfig.dateFormat}
@@ -1046,7 +1116,9 @@ export const CategoriesAndImportView: React.FC<CategoriesAndImportViewProps> = (
                           <tr>
                             <th className="p-2">Description</th>
                             <th className="p-2">Amount</th>
-                            <th className="p-2">Created on (Parsed)</th>
+                            <th className="p-2 text-indigo-700">Created on (Parsed)</th>
+                            <th className="p-2 text-sky-700">Transaction Date (Parsed)</th>
+                            <th className="p-2 text-amber-700">Transaction Month</th>
                             <th className="p-2">Category</th>
                           </tr>
                         </thead>
@@ -1054,23 +1126,55 @@ export const CategoriesAndImportView: React.FC<CategoriesAndImportViewProps> = (
                           {previewRows.map((row, idx) => {
                             const desc = mappingConfig.descCol ? row[mappingConfig.descCol] : '—';
                             const amt = mappingConfig.amountCol ? row[mappingConfig.amountCol] : '—';
-                            const rawDate = mappingConfig.dateCol ? row[mappingConfig.dateCol] : '';
-                            const parsedDate = parseFlexibleDate(rawDate, mappingConfig.dateFormat);
+                            
+                            // Created on parsing
+                            const rawCreated = mappingConfig.createdDateCol ? row[mappingConfig.createdDateCol] : '';
+                            const parsedCreated = parseFlexibleDate(rawCreated, mappingConfig.dateFormat) || new Date().toISOString().substring(0, 10);
+                            
+                            // Transaction Date parsing
+                            const rawTxnDate = mappingConfig.dateCol ? row[mappingConfig.dateCol] : (rawCreated || '');
+                            const parsedTxnDate = parseFlexibleDate(rawTxnDate, mappingConfig.dateFormat);
+
+                            // Transaction Month parsing
+                            const rawMonth = mappingConfig.transactionMonthCol ? row[mappingConfig.transactionMonthCol] : '';
+                            const parsedMonth = parseFlexibleMonth(rawMonth) || (parsedTxnDate ? parsedTxnDate.substring(0, 7) : '—');
+                            
                             const cat = mappingConfig.categoryCol ? row[mappingConfig.categoryCol] : 'Auto';
 
                             return (
                               <tr key={idx} className="hover:bg-slate-50/50">
                                 <td className="p-2 font-medium text-slate-800">{String(desc || '—')}</td>
                                 <td className="p-2 font-bold text-indigo-600">{String(amt || '—')}</td>
+                                
+                                {/* Created on */}
                                 <td className="p-2 text-slate-600 font-mono">
-                                  {parsedDate ? (
-                                    <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-semibold">
-                                      {parsedDate} ({String(rawDate)})
+                                  {rawCreated ? (
+                                    <span className="text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded font-semibold">
+                                      {parsedCreated} ({String(rawCreated)})
                                     </span>
                                   ) : (
-                                    <span className="text-rose-600">{String(rawDate || 'Missing')}</span>
+                                    <span className="text-slate-400 italic">Today ({parsedCreated})</span>
                                   )}
                                 </td>
+
+                                {/* Transaction Date */}
+                                <td className="p-2 text-slate-600 font-mono">
+                                  {parsedTxnDate ? (
+                                    <span className="text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded font-semibold">
+                                      {parsedTxnDate} ({String(rawTxnDate)})
+                                    </span>
+                                  ) : (
+                                    <span className="text-rose-600">{String(rawTxnDate || 'Missing')}</span>
+                                  )}
+                                </td>
+
+                                {/* Transaction Month */}
+                                <td className="p-2 font-mono">
+                                  <span className="text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded font-bold">
+                                    {parsedMonth}
+                                  </span>
+                                </td>
+
                                 <td className="p-2 text-slate-600">{String(cat || '—')}</td>
                               </tr>
                             );

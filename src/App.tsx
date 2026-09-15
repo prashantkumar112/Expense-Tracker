@@ -72,19 +72,41 @@ export default function App() {
 
   // Transaction Handlers
   const handleSaveTransaction = (txData: Partial<Transaction>) => {
+    const today = new Date().toISOString().substring(0, 10);
     if (txData.id) {
       // Edit
+      const existingTx = transactions.find((t) => t.id === txData.id);
+      const actualTxDate = txData.date || existingTx?.date || today;
+      const actualTxMonth = txData.transactionMonth || existingTx?.transactionMonth || actualTxDate.substring(0, 7);
+      const createdDate = existingTx?.createdDate || (existingTx?.createdAt ? new Date(existingTx.createdAt).toISOString().substring(0, 10) : today);
+
       const updated = transactions.map((t) =>
-        t.id === txData.id ? ({ ...t, ...txData } as Transaction) : t
+        t.id === txData.id
+          ? ({
+              ...t,
+              ...txData,
+              date: actualTxDate,
+              createdDate: txData.createdDate || createdDate,
+              transactionMonth: actualTxMonth,
+            } as Transaction)
+          : t
       );
       setTransactions(updated);
       setStoredTransactions(updated);
       showToast('Transaction updated successfully.');
     } else {
       // Add new
+      // Rule 1: By default, created date and transaction date will be same,
+      // but in case logging for history, created date will be current date and transaction date will be actual transaction date.
+      const actualTxDate = txData.date || today;
+      const createdDate = txData.createdDate || today;
+      const transactionMonth = txData.transactionMonth || actualTxDate.substring(0, 7);
+
       const newTx: Transaction = {
         id: `tx-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        date: txData.date || new Date().toISOString().substring(0, 10),
+        date: actualTxDate,
+        createdDate,
+        transactionMonth,
         amount: txData.amount || 0,
         type: txData.type || 'expense',
         categoryId: txData.categoryId || 'cat-personal',

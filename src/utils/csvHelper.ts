@@ -6,7 +6,9 @@ export function exportTransactionsToCsv(transactions: Transaction[], filename: s
   const rows = transactions.map((t) => ({
     Description: t.description || '',
     Amount: t.amount,
-    'Created on': formatDateToDDMMYY(t.date),
+    'Created Date': t.createdDate || formatDateToDDMMYY(t.date),
+    'Transaction Date': t.date,
+    'Transaction Month': t.transactionMonth || t.date.substring(0, 7),
     Category: t.categoryName,
     Type: t.type.toUpperCase(),
     'Payment Method': t.paymentMethod,
@@ -22,7 +24,9 @@ export function exportTransactionsToExcel(transactions: Transaction[], filename:
   const rows = transactions.map((t) => ({
     Description: t.description || '',
     Amount: t.amount,
-    'Created on': formatDateToDDMMYY(t.date),
+    'Created Date': t.createdDate || formatDateToDDMMYY(t.date),
+    'Transaction Date': t.date,
+    'Transaction Month': t.transactionMonth || t.date.substring(0, 7),
     Category: t.categoryName,
     Type: t.type.toUpperCase(),
     'Payment Method': t.paymentMethod,
@@ -62,73 +66,97 @@ export const SAMPLE_HISTORICAL_EXPENSE_ROWS = [
   {
     Description: 'Flat Rent Payment',
     Amount: 22000,
-    'Created on': '01/08/24',
+    'Created on': '15/09/26',
+    'Transaction Date': '01/08/24',
+    'Transaction Month': '2024-08',
     Category: 'Rent',
   },
   {
     Description: 'Monthly support allowance',
     Amount: 12000,
-    'Created on': '03/08/24',
+    'Created on': '15/09/26',
+    'Transaction Date': '03/08/24',
+    'Transaction Month': '2024-08',
     Category: 'Kajal',
   },
   {
     Description: 'HDFC Home Loan EMI',
     Amount: 24500,
-    'Created on': '05/08/24',
+    'Created on': '15/09/26',
+    'Transaction Date': '05/08/24',
+    'Transaction Month': '2024-08',
     Category: 'EMIs',
   },
   {
     Description: 'Agra household upkeep & groceries',
     Amount: 15000,
-    'Created on': '07/08/24',
+    'Created on': '15/09/26',
+    'Transaction Date': '07/08/24',
+    'Transaction Month': '2024-08',
     Category: 'Agra Home',
   },
   {
     Description: 'Mutual Fund SIP & Equities',
     Amount: 35000,
-    'Created on': '08/08/24',
+    'Created on': '15/09/26',
+    'Transaction Date': '08/08/24',
+    'Transaction Month': '2024-08',
     Category: 'Investment',
   },
   {
     Description: 'Bank Recurring Deposit',
     Amount: 10000,
-    'Created on': '10/08/24',
+    'Created on': '15/09/26',
+    'Transaction Date': '10/08/24',
+    'Transaction Month': '2024-08',
     Category: 'RDs',
   },
   {
     Description: 'Supermarket monthly bulk order',
     Amount: 13500,
-    'Created on': '12/08/24',
+    'Created on': '15/09/26',
+    'Transaction Date': '12/08/24',
+    'Transaction Month': '2024-08',
     Category: 'Groceries',
   },
   {
     Description: 'Apollo Pharmacy & health checkup',
     Amount: 4200,
-    'Created on': '14/08/24',
+    'Created on': '15/09/26',
+    'Transaction Date': '14/08/24',
+    'Transaction Month': '2024-08',
     Category: 'Health',
   },
   {
     Description: 'AirFiber Gigabit broadband',
     Amount: 1899,
-    'Created on': '15/08/24',
+    'Created on': '15/09/26',
+    'Transaction Date': '15/08/24',
+    'Transaction Month': '2024-08',
     Category: 'Internet',
   },
   {
     Description: 'HPCL Fuel & Metro pass',
     Amount: 6200,
-    'Created on': '20/08/24',
+    'Created on': '15/09/26',
+    'Transaction Date': '20/08/24',
+    'Transaction Month': '2024-08',
     Category: 'Transport',
   },
   {
     Description: 'Weekend dinner with colleagues',
     Amount: 7800,
-    'Created on': '22/08/24',
+    'Created on': '15/09/26',
+    'Transaction Date': '22/08/24',
+    'Transaction Month': '2024-08',
     Category: 'Outside Food',
   },
   {
     Description: 'Shopping, apparel & grooming',
     Amount: 6800,
-    'Created on': '25/08/24',
+    'Created on': '15/09/26',
+    'Transaction Date': '25/08/24',
+    'Transaction Month': '2024-08',
     Category: 'Personal',
   },
 ];
@@ -143,9 +171,11 @@ export function generateSampleExcelTemplate(): void {
   const worksheet = XLSX.utils.json_to_sheet(SAMPLE_HISTORICAL_EXPENSE_ROWS);
   // Auto-fit column widths
   worksheet['!cols'] = [
-    { wch: 36 }, // Description
+    { wch: 34 }, // Description
     { wch: 14 }, // Amount
-    { wch: 16 }, // Created on (DD/MM/YY)
+    { wch: 16 }, // Created on
+    { wch: 18 }, // Transaction Date
+    { wch: 18 }, // Transaction Month
     { wch: 18 }, // Category
   ];
 
@@ -345,10 +375,44 @@ export function autoDetectColumnMapping(headers: string[]): CsvMappingConfig {
     return '';
   };
 
+  // 1. Created on / Logged Date Column
+  const createdDateCol = findExactOrIncludes([
+    'created on',
+    'created_on',
+    'created date',
+    'created_date',
+    'creation date',
+    'logged on',
+    'entry date',
+    'uploaded on',
+  ]);
+
+  // 2. Transaction Date (Actual Statement Date)
   const dateCol =
-    findExactOrIncludes(['created on', 'created_on', 'created date', 'date', 'txn date', 'transaction date', 'txn_date']) ||
-    headers[0] ||
+    findExactOrIncludes([
+      'transaction date',
+      'txn date',
+      'txn_date',
+      'trans date',
+      'actual date',
+      'statement date',
+      'date',
+      'transaction_date',
+    ]) ||
+    (createdDateCol ? '' : headers[0]) ||
     '';
+
+  // 3. Transaction Month (Cash Flow Accounting Month)
+  const transactionMonthCol = findExactOrIncludes([
+    'transaction month',
+    'txn month',
+    'trans month',
+    'accounting month',
+    'cash flow month',
+    'cashflow month',
+    'month',
+    'period',
+  ]);
 
   const debitCol = findExactOrIncludes(['debit', 'dr', 'withdrawal', 'outflow', 'expense amount', 'paid out']);
   const creditCol = findExactOrIncludes(['credit', 'cr', 'deposit', 'inflow', 'received', 'income amount']);
@@ -373,7 +437,9 @@ export function autoDetectColumnMapping(headers: string[]): CsvMappingConfig {
   const paymentMethodCol = findExactOrIncludes(['payment method', 'payment mode', 'mode', 'method', 'channel', 'account', 'bank', 'wallet']);
 
   return {
-    dateCol,
+    dateCol: dateCol || createdDateCol || headers[0] || '',
+    createdDateCol,
+    transactionMonthCol,
     amountCol,
     debitCol,
     creditCol,
@@ -467,6 +533,75 @@ export function parseFlexibleDate(raw: any, preferredFormat: string = 'DD/MM/YY'
   return null;
 }
 
+/**
+ * Flexible month parser supporting YYYY-MM (e.g. 2024-08), MM/YYYY (08/2024), MM/YY (08/24),
+ * and natural month names like "Aug 2024", "August 2024".
+ */
+export function parseFlexibleMonth(raw: any): string | null {
+  if (raw === undefined || raw === null) return null;
+
+  // If already Date or Excel serial
+  if (raw instanceof Date && !isNaN(raw.getTime())) {
+    const y = raw.getFullYear();
+    const m = String(raw.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  }
+
+  const str = String(raw).trim();
+  if (!str) return null;
+
+  // 1. Match YYYY-MM or YYYY/MM (e.g. 2024-08, 2024/08)
+  const yyyyMmMatch = str.match(/^(\d{4})[-/.](\d{1,2})$/);
+  if (yyyyMmMatch) {
+    const y = yyyyMmMatch[1];
+    const m = yyyyMmMatch[2].padStart(2, '0');
+    return `${y}-${m}`;
+  }
+
+  // 2. Match MM-YYYY or MM/YYYY (e.g. 08/2024, 08-2024)
+  const mmYyyyMatch = str.match(/^(\d{1,2})[-/.](\d{4})$/);
+  if (mmYyyyMatch) {
+    const m = mmYyyyMatch[1].padStart(2, '0');
+    const y = mmYyyyMatch[2];
+    return `${y}-${m}`;
+  }
+
+  // 3. Match MM-YY or MM/YY (e.g. 08/24)
+  const mmYyMatch = str.match(/^(\d{1,2})[-/.](\d{2})$/);
+  if (mmYyMatch) {
+    const m = mmYyMatch[1].padStart(2, '0');
+    let fullYear = parseInt(mmYyMatch[2], 10);
+    fullYear = fullYear < 70 ? 2000 + fullYear : 1900 + fullYear;
+    return `${fullYear}-${m}`;
+  }
+
+  // 4. Month name representations like "Aug 2024", "August 2024", "2024 Aug", "Aug-24"
+  const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  const lower = str.toLowerCase();
+  for (let idx = 0; idx < monthNames.length; idx++) {
+    const mName = monthNames[idx];
+    if (lower.includes(mName)) {
+      const yearMatch = str.match(/\d{2,4}/);
+      if (yearMatch) {
+        let y = parseInt(yearMatch[0], 10);
+        if (yearMatch[0].length === 2) {
+          y = y < 70 ? 2000 + y : 1900 + y;
+        }
+        const m = String(idx + 1).padStart(2, '0');
+        return `${y}-${m}`;
+      }
+    }
+  }
+
+  // 5. Try parseFlexibleDate and take first 7 characters
+  const fullDate = parseFlexibleDate(str);
+  if (fullDate) {
+    return fullDate.substring(0, 7);
+  }
+
+  return null;
+}
+
 const INCOME_KEYWORDS = [
   'salary', 'income', 'inflow', 'credit', 'freelance', 'dividend', 'dividends',
   'interest', 'bonus', 'stipend', 'rental income', 'rent received', 'refund',
@@ -519,6 +654,8 @@ export function mapAndImportTransactions(
   rows.forEach((row, idx) => {
     try {
       const dateRaw = config.dateCol ? row[config.dateCol] : undefined;
+      const createdRaw = config.createdDateCol ? row[config.createdDateCol] : undefined;
+      const monthRaw = config.transactionMonthCol ? row[config.transactionMonthCol] : undefined;
       const amountRaw = config.amountCol ? row[config.amountCol] : undefined;
       const debitRaw = config.debitCol ? row[config.debitCol] : undefined;
       const creditRaw = config.creditCol ? row[config.creditCol] : undefined;
@@ -533,8 +670,14 @@ export function mapAndImportTransactions(
         return;
       }
 
-      if (dateRaw === undefined || dateRaw === null || String(dateRaw).trim() === '') {
-        errors.push(`Row #${idx + 1}: Missing "Created on" / Date.`);
+      // Check if either Transaction Date or Created on column is present
+      const effectiveDateSource =
+        dateRaw !== undefined && dateRaw !== null && String(dateRaw).trim() !== ''
+          ? dateRaw
+          : createdRaw;
+
+      if (effectiveDateSource === undefined || effectiveDateSource === null || String(effectiveDateSource).trim() === '') {
+        errors.push(`Row #${idx + 1}: Missing "Transaction Date" or "Created on" date.`);
         return;
       }
 
@@ -574,10 +717,10 @@ export function mapAndImportTransactions(
         return;
       }
 
-      // Parse Date (DD/MM/YY prioritized)
-      const standardDate = parseFlexibleDate(dateRaw, config.dateFormat);
+      // Parse Transaction Date
+      const standardDate = parseFlexibleDate(effectiveDateSource, config.dateFormat);
       if (!standardDate) {
-        errors.push(`Row #${idx + 1}: Could not parse date format: "${String(dateRaw)}". Expected DD/MM/YY.`);
+        errors.push(`Row #${idx + 1}: Could not parse date format: "${String(effectiveDateSource)}". Expected ${config.dateFormat}.`);
         return;
       }
 
@@ -665,10 +808,31 @@ export function mapAndImportTransactions(
       }
 
       const description = descRaw || `${categoryName} ${type}`;
+      const today = new Date().toISOString().substring(0, 10);
+      
+      // Parse Created on (Entry timestamp / Date when record was logged)
+      let createdDate = today;
+      if (createdRaw !== undefined && createdRaw !== null && String(createdRaw).trim() !== '') {
+        const parsedCreated = parseFlexibleDate(createdRaw, config.dateFormat);
+        if (parsedCreated) {
+          createdDate = parsedCreated;
+        }
+      }
+
+      // Parse Transaction Month (Cash flow accounting month, e.g. YYYY-MM)
+      let transactionMonth = standardDate.substring(0, 7);
+      if (monthRaw !== undefined && monthRaw !== null && String(monthRaw).trim() !== '') {
+        const parsedMonth = parseFlexibleMonth(monthRaw);
+        if (parsedMonth) {
+          transactionMonth = parsedMonth;
+        }
+      }
 
       transactions.push({
         id: `imported-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
-        date: standardDate,
+        date: standardDate, // Actual transaction date
+        createdDate,
+        transactionMonth,
         amount,
         type,
         categoryId,

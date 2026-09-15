@@ -28,9 +28,63 @@ export function parseTxDateComponents(dateStr: string): { year: number; month: n
   return { year: 0, month: 0, day: 0 };
 }
 
+/**
+ * Returns the effective cash flow month (YYYY-MM) for a transaction.
+ * Uses `transactionMonth` if explicitly set; otherwise falls back to `date.substring(0, 7)`.
+ */
+export function getTxCashflowMonth(tx: Pick<Transaction, 'date' | 'transactionMonth'>): string {
+  if (tx.transactionMonth && /^\d{4}-\d{2}$/.test(tx.transactionMonth.trim())) {
+    return tx.transactionMonth.trim();
+  }
+  return tx.date ? tx.date.substring(0, 7) : new Date().toISOString().substring(0, 7);
+}
+
+/**
+ * Parses the cash flow year and month (1-12) based on transactionMonth, with fallback to transaction date.
+ */
+export function parseTxCashflowComponents(tx: Pick<Transaction, 'date' | 'transactionMonth'>): { year: number; month: number } {
+  const ym = getTxCashflowMonth(tx);
+  const parts = ym.split('-');
+  const year = parseInt(parts[0], 10) || 0;
+  const month = parseInt(parts[1], 10) || 0;
+  return { year, month };
+}
+
+/**
+ * Returns color class based on number value: green for positive (>= 0), red for negative (< 0)
+ */
+export function getNumberColorClass(
+  value: number,
+  theme: 'text' | 'badge' = 'text',
+  isDarkBg: boolean = false
+): string {
+  if (value >= 0) {
+    if (theme === 'badge') {
+      return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+    }
+    return isDarkBg ? 'text-emerald-400' : 'text-emerald-600';
+  } else {
+    if (theme === 'badge') {
+      return 'bg-rose-50 text-rose-700 border border-rose-200';
+    }
+    return isDarkBg ? 'text-rose-400' : 'text-rose-600';
+  }
+}
+
+/**
+ * Prefixes a '+' sign if the number is positive
+ */
+export function formatSignedValue(value: number, formattedString: string): string {
+  if (value > 0 && !formattedString.startsWith('+')) {
+    return `+${formattedString}`;
+  }
+  return formattedString;
+}
+
 export function getAvailableYears(transactions: Transaction[]): number[] {
   const years = new Set<number>();
   const currentYear = new Date().getFullYear();
+  years.add(currentYear + 1);
   years.add(currentYear);
   years.add(currentYear - 1);
   years.add(currentYear - 2);
@@ -40,6 +94,8 @@ export function getAvailableYears(transactions: Transaction[]): number[] {
       const { year: y } = parseTxDateComponents(tx.date);
       if (y > 1900) years.add(y);
     }
+    const { year: cfY } = parseTxCashflowComponents(tx);
+    if (cfY > 1900) years.add(cfY);
   });
 
   return Array.from(years).sort((a, b) => b - a);
@@ -54,10 +110,13 @@ export function filterTransactionsByDate(
     categoryId?: string | 'all';
     type?: 'expense' | 'income' | 'all';
     searchTerm?: string;
+    useCashflowMonth?: boolean;
   }
 ): Transaction[] {
   return transactions.filter((tx) => {
-    const { year: txYear, month: txMonth } = parseTxDateComponents(tx.date);
+    const { year: txYear, month: txMonth } = filters.useCashflowMonth
+      ? parseTxCashflowComponents(tx)
+      : parseTxDateComponents(tx.date);
     const txQuarter = `Q${Math.ceil(txMonth / 3)}` as 'Q1' | 'Q2' | 'Q3' | 'Q4';
 
     if (filters.year && filters.year !== 'all' && txYear !== filters.year) return false;
@@ -72,7 +131,9 @@ export function filterTransactionsByDate(
       const matchCat = tx.categoryName?.toLowerCase().includes(q);
       const matchNotes = tx.notes?.toLowerCase().includes(q);
       const matchMethod = tx.paymentMethod?.toLowerCase().includes(q);
-      if (!matchDesc && !matchCat && !matchNotes && !matchMethod) return false;
+      const matchMonth = tx.transactionMonth?.toLowerCase().includes(q);
+      const matchCreated = tx.createdDate?.toLowerCase().includes(q);
+      if (!matchDesc && !matchCat && !matchNotes && !matchMethod && !matchMonth && !matchCreated) return false;
     }
 
     return true;
@@ -190,7 +251,8 @@ export function getMonthlySpendTrends(transactions: Transaction[], year: number)
   }));
 
   transactions.forEach((tx) => {
-    const { year: ty, month: tm } = parseTxDateComponents(tx.date);
+    // Transaction month used to calculate proper monthly cash flow
+    const { year: ty, month: tm } = parseTxCashflowComponents(tx);
     if (ty === year && tm >= 1 && tm <= 12) {
       const mIdx = tm - 1;
       if (tx.type === 'income') {
@@ -284,7 +346,8 @@ export function generateMonthlyReport(
   const daysInMonth = new Date(year, month, 0).getDate();
 
   const monthTxs = transactions.filter((tx) => {
-    const { year: ty, month: tm } = parseTxDateComponents(tx.date);
+    // Transaction month used to calculate proper monthly cash flow
+    const { year: ty, month: tm } = parseTxCashflowComponents(tx);
     return ty === year && tm === month;
   });
 
@@ -424,7 +487,8 @@ export function generateYearlyReport(
   year: number
 ): YearlyBudgetReport {
   const yearTxs = transactions.filter((tx) => {
-    const { year: ty } = parseTxDateComponents(tx.date);
+    // Transaction month used to calculate proper monthly cash flow
+    const { year: ty } = parseTxCashflowComponents(tx);
     return ty === year;
   });
 
@@ -443,7 +507,7 @@ export function generateYearlyReport(
   const categoryTotalsMap = new Map<string, number>();
 
   yearTxs.forEach((tx) => {
-    const { month: tm } = parseTxDateComponents(tx.date);
+    const { month: tm } = parseTxCashflowComponents(tx);
     const m = tm - 1;
 
     if (tx.type === 'income') {

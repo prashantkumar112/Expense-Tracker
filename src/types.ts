@@ -15,7 +15,9 @@ export interface Category {
 
 export interface Transaction {
   id: string;
-  date: string; // YYYY-MM-DD
+  date: string; // YYYY-MM-DD (actual transaction date)
+  createdDate?: string; // YYYY-MM-DD (date when transaction was logged/created)
+  transactionMonth?: string; // YYYY-MM (used to calculate proper monthly cash flow)
   amount: number;
   type: TransactionType;
   categoryId: string;
@@ -129,7 +131,9 @@ export interface UploadedExpenseFile {
 }
 
 export interface CsvMappingConfig {
-  dateCol: string;
+  dateCol: string; // Transaction Date
+  createdDateCol?: string; // Created on / Logged Date
+  transactionMonthCol?: string; // Transaction Month (e.g. YYYY-MM)
   amountCol: string;
   debitCol?: string;
   creditCol?: string;
