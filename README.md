@@ -61,13 +61,17 @@ npm run build
 
 ---
 
-### Step 5: Initialize Capacitor & Add Android
-Initialize the native Android container and generate the native Android Studio project:
+### Step 5: Add Android Platform & Sync Assets
+The project already comes pre-configured with `capacitor.config.json`. Simply add the Android platform (first time only) and sync:
 
 ```bash
-npx cap init "Expense Tracker" "com.personal.expensetracker" --web-dir dist
+# Add Android platform (run only once if android folder doesn't exist)
 npx cap add android
+
+# Sync web assets to Android
+npx cap sync android
 ```
+*(Note: If you run `npx cap init`, it will give an error because the project is already initialized with `capacitor.config.json`. You can skip `init`).*
 
 ---
 

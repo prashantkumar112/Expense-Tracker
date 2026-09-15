@@ -51,8 +51,14 @@ if (Test-Path "android\app\build") {
     Remove-Item -Recurse -Force "android\app\build" -ErrorAction SilentlyContinue
 }
 
-# Check if capacitor.config.ts or capacitor.config.json already exists
-if (-not (Test-Path "capacitor.config.*")) {
+# Remove any conflicting capacitor.config.ts if it exists
+if (Test-Path "capacitor.config.ts") {
+    Write-Host "ℹ️  Removing conflicting capacitor.config.ts (using capacitor.config.json)..." -ForegroundColor Cyan
+    Remove-Item "capacitor.config.ts" -Force -ErrorAction SilentlyContinue
+}
+
+# Check if capacitor.config.json already exists
+if (-not (Test-Path "capacitor.config.json")) {
     npx cap init "Expense Tracker" "com.personal.expensetracker" --web-dir dist
 }
 
