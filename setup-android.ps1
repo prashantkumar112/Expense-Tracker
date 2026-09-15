@@ -91,6 +91,13 @@ if (Test-Path $manifestPath) {
 Write-Host "ℹ️  Syncing compiled relative web assets into Android project..." -ForegroundColor Cyan
 npx cap sync android
 
+# Ensure Android assets folder is strictly in sync with dist
+$androidPublicDir = "android\app\src\main\assets\public"
+if (Test-Path $androidPublicDir) {
+    Write-Host "🔄 Ensuring exact file parity between dist\ and Android assets..." -ForegroundColor Cyan
+    Copy-Item -Path "dist\*" -Destination $androidPublicDir -Recurse -Force
+}
+
 Write-Host "✅ Android project synchronized with fresh assets!" -ForegroundColor Green
 Write-Host ""
 
