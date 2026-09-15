@@ -91,11 +91,14 @@ if (Test-Path $manifestPath) {
 Write-Host "ℹ️  Syncing compiled relative web assets into Android project..." -ForegroundColor Cyan
 npx cap sync android
 
-# Ensure Android assets folder is strictly in sync with dist
+# Ensure Android assets folder is strictly in sync with dist and purge any stale files
 $androidPublicDir = "android\app\src\main\assets\public"
 if (Test-Path $androidPublicDir) {
     Write-Host "🔄 Ensuring exact file parity between dist\ and Android assets..." -ForegroundColor Cyan
     Copy-Item -Path "dist\*" -Destination $androidPublicDir -Recurse -Force
+    # Create safety fallback copies matching the exact legacy filenames so cached requests never 404
+    Copy-Item "dist\assets\index.js" "$androidPublicDir\assets\index-BKAj-yqA.js" -Force -ErrorAction SilentlyContinue
+    Copy-Item "dist\assets\index.css" "$androidPublicDir\assets\index-DMD0ubZb.css" -Force -ErrorAction SilentlyContinue
 }
 
 Write-Host "✅ Android project synchronized with fresh assets!" -ForegroundColor Green
