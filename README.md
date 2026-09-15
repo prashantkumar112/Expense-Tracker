@@ -84,12 +84,17 @@ npx cap open android
 
 ## 🛠️ Step 7: Build the APK in Android Studio
 
-1. When Android Studio opens for the first time, wait 1–2 minutes for the bottom status bar to complete **"Gradle Sync"** and indexing.
-2. In the top menu bar, go to:
-   - **Build** ➔ **Build Bundle(s) / APK(s)** ➔ **Build APK(s)**
-3. When the compilation completes, a notification banner will pop up in the bottom-right corner:
+1. When Android Studio opens, wait for the bottom status bar to complete **"Gradle Sync"**.
+2. **IMPORTANT - Clear previous cache:**
+   - In the top menu bar, click: **Build** ➔ **Clean Project**
+   - Wait 15–30 seconds for it to finish.
+3. Generate the fresh APK:
+   - In the top menu bar, click: **Build** ➔ **Build Bundle(s) / APK(s)** ➔ **Build APK(s)**
+4. When compilation finishes, a notification banner will pop up in the bottom-right corner:
    > *"APK(s) generated successfully for 1 module"*
-4. Click the blue **"locate"** link inside that notification.
+5. Click the blue **"locate"** link inside that notification to find `app-debug.apk`.
+
+*(Note: Running `.\setup-android.ps1` will also attempt to compile `ExpenseTracker.apk` directly into your main folder automatically!)*
 
 ### 📍 Where to find the generated `.apk` file:
 The compiled APK file will be located at:

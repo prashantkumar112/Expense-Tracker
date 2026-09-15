@@ -1,0 +1,16 @@
+const config = {
+  appId: 'com.personal.expensetracker',
+  appName: 'Expense Tracker',
+  webDir: 'dist',
+  server: {
+    androidScheme: 'https',
+    cleartext: true,
+    allowNavigation: ['*'],
+  },
+  android: {
+    allowMixedContent: true,
+    webContentsDebuggingEnabled: true,
+  },
+};
+
+export default config;

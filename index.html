@@ -19,6 +19,25 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <script>
+      // Immediately unregister any legacy service workers
+      if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          for (var i = 0; i < regs.length; i++) regs[i].unregister();
+        }).catch(function() {});
+      }
+      // On-screen diagnostic logger if scripts fail to load in Android WebView
+      window.addEventListener('error', function(e) {
+        var box = document.getElementById('debug-error-box');
+        if (!box) {
+          box = document.createElement('div');
+          box.id = 'debug-error-box';
+          box.style.cssText = 'position:fixed;bottom:16px;left:16px;right:16px;background:#fef2f2;border:1px solid #ef4444;color:#991b1b;padding:12px;border-radius:12px;font-size:12px;font-family:monospace;z-index:999999;word-break:break-all;box-shadow:0 10px 15px rgba(0,0,0,0.15);';
+          document.body.appendChild(box);
+        }
+        box.innerHTML = '<strong>App Launch Diagnostic:</strong><br>' + (e.message || 'Script error') + (e.filename ? '<br><small>' + e.filename + ':' + e.lineno + '</small>' : '');
+      });
+    </script>
   </head>
   <body class="bg-[#F8FAFC] text-slate-800 antialiased selection:bg-indigo-500 selection:text-white font-['Plus_Jakarta_Sans',sans-serif]">
     <div id="root">
