@@ -208,7 +208,7 @@ export default function App() {
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 p-3 sm:p-5 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-5 pb-28 overflow-y-auto w-full">
           {activeTab === 'dashboard' && (
             <DashboardView
               transactions={transactions}

@@ -111,12 +111,27 @@ The compiled APK file will be located at:
 ## 📲 Step 8: Install the APK on Your Android Phone
 
 ### Method A: Direct Transfer (Easiest)
-1. Send the `app-debug.apk` file to your phone via:
+1. **Uninstall the old app** from your phone first (long press app icon ➔ Uninstall) to ensure all old WebView cache is completely cleared.
+2. Send the `app-debug.apk` file to your phone via:
    - **USB Cable** (drag & drop into your phone's *Download* folder)
    - **Google Drive / WhatsApp / Telegram / Email**
-2. On your phone, tap the `app-debug.apk` file to install it.
-3. If prompted with *"Install unknown apps"*, toggle **Allow from this source**.
-4. Tap **Install** and open the app!
+3. On your phone, tap the `app-debug.apk` file to install it.
+4. If prompted with *"Install unknown apps"*, toggle **Allow from this source**.
+5. Tap **Install** and open the app!
+
+---
+
+## 🔍 Live Remote Debugging with Chrome (If Screen Has Issues)
+Because remote web debugging is enabled in `capacitor.config.json`, you can inspect the exact live WebView and Console errors from your computer:
+
+1. Connect your Android phone to your computer with a USB cable (with **USB Debugging** enabled in Developer Options).
+2. Open **Google Chrome** on your computer and navigate to:
+   ```text
+   chrome://inspect/#devices
+   ```
+3. Under **Remote Target**, locate your phone and the app:
+   > **com.personal.expensetracker** (Expense Tracker)
+4. Click **inspect** next to it. A Chrome DevTools window will open mirroring your phone's screen with the full **Console** and **Elements** tabs, where you can see any errors or styles live!
 
 ### Method B: Install Directly from Android Studio (via USB)
 1. Enable **Developer Options** and **USB Debugging** on your phone:

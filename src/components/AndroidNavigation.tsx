@@ -28,7 +28,7 @@ export const AndroidNavigation: React.FC<AndroidNavigationProps> = ({
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-lg pb-safe">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200 shadow-lg pb-safe">
       <div className="max-w-md mx-auto px-2 py-1.5 flex items-center justify-around">
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
@@ -39,16 +39,16 @@ export const AndroidNavigation: React.FC<AndroidNavigationProps> = ({
               key={item.id}
               onClick={() => onTabChange(item.id)}
               className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl transition-all duration-200 cursor-pointer relative group ${
-                isActive ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-900'
+                isActive ? 'text-indigo-600' : 'text-slate-700 hover:text-slate-900'
               }`}
             >
               {/* Material 3 Active Pill Indicator */}
               <div
                 className={`relative px-4 py-1 rounded-full flex items-center justify-center transition-all ${
-                  isActive ? 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200/80 shadow-xs' : 'bg-transparent'
+                  isActive ? 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200/80 shadow-xs' : 'bg-transparent text-slate-700'
                 }`}
               >
-                <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
+                <Icon size={21} strokeWidth={isActive ? 2.5 : 2} />
 
                 {item.badge !== undefined && (
                   <span className="absolute -top-1 -right-1 bg-indigo-600 text-white font-extrabold text-[9px] min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center shadow">
@@ -58,8 +58,8 @@ export const AndroidNavigation: React.FC<AndroidNavigationProps> = ({
               </div>
 
               <span
-                className={`text-[10px] font-medium tracking-tight mt-0.5 transition-all ${
-                  isActive ? 'font-bold text-indigo-600' : 'text-slate-500'
+                className={`text-[11px] font-semibold tracking-tight mt-0.5 transition-all ${
+                  isActive ? 'font-bold text-indigo-600' : 'text-slate-600'
                 }`}
               >
                 {item.label}
@@ -68,9 +68,6 @@ export const AndroidNavigation: React.FC<AndroidNavigationProps> = ({
           );
         })}
       </div>
-
-      {/* Android Home Navigation Bar indicator (for phone feel) */}
-      <div className="w-28 h-1 bg-slate-300 rounded-full mx-auto my-1" />
     </nav>
   );
 };

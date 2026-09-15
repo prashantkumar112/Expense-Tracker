@@ -68,14 +68,23 @@ if (-not (Test-Path "android")) {
     npx cap add android
 }
 
-# Patch AndroidManifest.xml for cleartext & WebView permissions
+# Patch AndroidManifest.xml for cleartext & WebView permissions & forceDark
 $manifestPath = "android\app\src\main\AndroidManifest.xml"
 if (Test-Path $manifestPath) {
     $manifest = Get-Content $manifestPath -Raw
+    $needsUpdate = $false
     if ($manifest -notmatch "android:usesCleartextTraffic") {
         $manifest = $manifest -replace "<application", "<application`n        android:usesCleartextTraffic=`"true`""
-        Set-Content -Path $manifestPath -Value $manifest -Encoding UTF8
+        $needsUpdate = $true
         Write-Host "🔧 Configured android:usesCleartextTraffic in AndroidManifest.xml" -ForegroundColor Green
+    }
+    if ($manifest -notmatch "android:forceDarkAllowed") {
+        $manifest = $manifest -replace "<application", "<application`n        android:forceDarkAllowed=`"false`""
+        $needsUpdate = $true
+        Write-Host "🔧 Configured android:forceDarkAllowed=`"false`" in AndroidManifest.xml" -ForegroundColor Green
+    }
+    if ($needsUpdate) {
+        Set-Content -Path $manifestPath -Value $manifest -Encoding UTF8
     }
 }
 
