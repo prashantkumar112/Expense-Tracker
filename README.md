@@ -73,6 +73,12 @@ npx cap sync android
 ```
 *(Note: If you run `npx cap init`, it will give an error because the project is already initialized with `capacitor.config.json`. You can skip `init`).*
 
+If copying or syncing assets manually on Windows PowerShell to ensure bundle filenames match Android assets:
+```powershell
+Copy-Item "dist\assets\index.js" "android\app\src\main\assets\public\assets\index-BKAj-yqA.js" -Force
+Copy-Item "dist\assets\index.css" "android\app\src\main\assets\public\assets\index-DMD0ubZb.css" -Force
+```
+
 ---
 
 ### Step 6: Open the Project in Android Studio
@@ -144,13 +150,20 @@ Because remote web debugging is enabled in `capacitor.config.json`, you can insp
 ---
 
 ## 🔄 How to Update the App After Making Changes
-If you edit code or add features in the future, follow these 3 quick commands to sync the changes into your Android project:
+If you edit code or add features in the future, follow these quick commands to sync the changes into your Android project:
 
 ```bash
 npm run build
 npx cap sync android
 ```
-Then re-run **Build ➔ Build APK(s)** in Android Studio.
+
+If on Windows PowerShell, you can also force copy the updated asset bundles directly:
+```powershell
+Copy-Item "dist\assets\index.js" "android\app\src\main\assets\public\assets\index-BKAj-yqA.js" -Force
+Copy-Item "dist\assets\index.css" "android\app\src\main\assets\public\assets\index-DMD0ubZb.css" -Force
+```
+
+Then re-run **Build ➔ Clean Project** and **Build ➔ Build APK(s)** in Android Studio.
 
 ---
 
